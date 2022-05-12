@@ -11,21 +11,20 @@
  * A simple static lighting setup is provided via initLights(), which is not
  * included in the animationalcontrol.c template. There are no other changes.
  *
+ * Author: Peter An
+ *
  ******************************************************************************/
 
 #include <Windows.h>
 #include <freeglut.h>
 #include <math.h>
 
- /******************************************************************************
-  * Animation & Timing Setup
-  ******************************************************************************/
+/******************************************************************************
+* Animation & Timing Setup
+******************************************************************************/
 
-  // Target frame rate (number of Frames Per Second).
+// Target frame rate (number of Frames Per Second).
 #define TARGET_FPS 60				
-
-#define PI 3.14159265359
-#define DEG_TO_RAD PI/180
 
 // Ideal time each frame should be displayed for (in milliseconds).
 const unsigned int FRAME_TIME = 1000 / TARGET_FPS;
@@ -70,7 +69,7 @@ typedef struct {
  * Keyboard Input Handling Setup
  ******************************************************************************/
 
- // Represents the state of a single keyboard key.Represents the state of a single keyboard key.
+// Represents the state of a single keyboard key.Represents the state of a single keyboard key.
 typedef enum {
 	KEYSTATE_UP = 0,	// Key is not pressed.
 	KEYSTATE_DOWN		// Key is pressed down.
@@ -107,7 +106,6 @@ motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_
 #define KEY_MOVE_BACKWARD	's'
 #define KEY_MOVE_LEFT		'a'
 #define KEY_MOVE_RIGHT		'd'
-#define KEY_RENDER_FILL		'l'
 #define KEY_EXIT			27 // Escape key.
 
 // Define all GLUT special keys used for input (add any new key definitions here).
@@ -139,13 +137,8 @@ void init(void);
 void think(void);
 void initLights(void);
 
-void drawSnowman(void);
-void drawEye(enum Side side);
-void drawBow(void);
-void drawBand(void);
-
-void propellar(void);
-void basicSphere(void);
+void drawDrone(void);
+void drawPropeller(void);
 void basicSphere(void);
 void drawOrigin(void);
 void basicGround(void);
@@ -153,8 +146,11 @@ void basicGround(void);
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
  ******************************************************************************/
+// Angle tools
+#define PI 3.14159265359
+#define DEG_TO_RAD PI/180
 
- // Render objects as filled polygons (1) or wireframes (0). Default filled.
+// Render objects as filled polygons (1) or wireframes (0). Default filled.
 int renderFillEnabled = 1;
 
 //is the object to be drawn on the left (-x) or right (-y)
@@ -164,46 +160,31 @@ enum Side {
 };
 
 // window dimensions
-GLint windowWidth = 800;
-GLint windowHeight = 600;
+GLint windowWidth = 1280;
+GLint windowHeight = 720;
 
 // current camera position
 GLfloat cameraPosition[] = { 0, 1, 15 };
 GLfloat cameraLookAt[] = { 0, 0, 0 };
 
 // pointer to quadric objects
-GLUquadricObj  *sphereQuadric;
-GLUquadricObj  *cylinderQuadric;
+GLUquadricObj *sphereQuadric;
+GLUquadricObj *cylinderQuadric;
 GLUquadricObj *diskQuadric;
 
-//snowman hierachical model setup values
+//drone hierachical model setup values
 //dimensions of the body
 #define BODY_RADIUS 2.0
-//dimensions of the head
-#define HEAD_RADIUS 1.5
-//dimensions of the eyes
-#define EYE_RADIUS 0.2
 
-//bowtie dimensions
-#define BOW_TIE_LENGTH 0.7
-#define BOW_TIE_WIDTH 0.2
-#define BAND_WIDTH 0.2
+//propellar dimensions
+#define PROPELLER_LENGTH 1.5
+#define PROPELLER_WIDTH 0.1
 
-//bowtie rotation variable
-float thetaBowTie = 0.0f;
-
-GLfloat smPosition[3] = { 0.0f, 0.0f, 0.0f };
-const float smSpeed = 2.0f; // Metres per second
-float smHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
-
-
-#define PROPELLAR_RADIUS 1.0
+GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
+const float droneSpeed = 2.0f; // Metres per second
+float droneHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
 
 float thetaPropellar = 0.0f;
-
-GLfloat propellarPosition[3] = { 0.f, 0.f, 0.f };
-const float propellarSpeed = 2.f;
-float propellarHeading = 0.f;
 
 
 /******************************************************************************
@@ -216,7 +197,7 @@ void main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(windowWidth, windowHeight);
-	glutCreateWindow("Snowman Animation");
+	glutCreateWindow("Drone Animation");
 
 	// Set up the scene.
 	init();
@@ -271,9 +252,7 @@ void display(void)
 	//only apply the transforms inside the push/pop to the snowman and ground
 	glPushMatrix();
 
-	drawSnowman();
-
-	//propellar();
+	drawDrone();
 
 	//draw the ground
 	basicGround();
@@ -347,9 +326,6 @@ void keyPressed(unsigned char key, int x, int y)
 			For example, refer to the existing keys used here (KEY_MOVE_FORWARD,
 			KEY_MOVE_LEFT, KEY_EXIT, etc).
 		*/
-	case KEY_RENDER_FILL:
-		renderFillEnabled = !renderFillEnabled;
-		break;
 	case KEY_EXIT:
 		exit(0);
 		break;
@@ -549,31 +525,29 @@ void init(void)
 */
 void think(void)
 {
-
-	thetaBowTie += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
-	thetaPropellar += 360 * FRAME_TIME_SEC;
+	thetaPropellar += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
 
 	/*
 		Keyboard motion handler: complete this section to make your "player-controlled"
 		object respond to keyboard input.
 	*/
 	if (keyboardMotion.Yaw != MOTION_NONE) {
-		smHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		droneHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
-		smPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
+		dronePosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		cameraLookAt[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
 	}
 	if (keyboardMotion.Sway != MOTION_NONE) {
-		smPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
+		dronePosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
+		cameraLookAt[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
 	}
 	if (keyboardMotion.Heave != MOTION_NONE) {
-		smPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
+		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
+		cameraLookAt[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
 	}
 }
 
@@ -614,143 +588,6 @@ void initLights(void)
 }
 
 /******************************************************************************/
-
-
-/*
-	Draw a snowman with a rotating bowtie either filled or wireframe
-*/
-void drawSnowman(void)
-{
-	glColor3f(1.0, 1.0, 1.0);
-
-	if (!renderFillEnabled)
-		gluQuadricDrawStyle(sphereQuadric, GLU_LINE);
-	else
-		gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
-
-	glPushMatrix();
-
-	//This allows up to move the snowman all its parts will follow
-	//if we have set this up correctly
-	//in Session 13 we will move the snowman mahattan style using our animationcontroller.c template
-
-		//draw the body
-		gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
-
-	//move the head origin, center of the sphere to the top of the body
-	glTranslated(0.0, BODY_RADIUS, 0.0);
-
-
-	glPushMatrix();
-
-	//move the head to sit on top of body
-	glTranslated(0.0, HEAD_RADIUS, 0.0);
-	//draw the head
-	gluSphere(sphereQuadric, HEAD_RADIUS, 50, 50);
-
-
-	//eyes inherit the *all* the head translations
-	//and any body transforms
-	//place them a little bit higher	
-	//right eye
-	drawEye(rightSide);
-	//left eye
-	drawEye(leftSide);
-
-	glPopMatrix();
-
-
-	//draw the band relative to the body
-	drawBand();
-
-	//draw the bowtie relative to the band
-	//this way the bowtie inherits the body and head transforms
-	//if added a transform for the band e.g. we rotated the band above then
-	//this should be setup so that it inherits that transfrom
-	glPushMatrix();
-	glRotated(thetaBowTie, 0, 0, 1);
-	drawBow();
-	glPopMatrix();
-
-
-	glPopMatrix(); //end global snowman translate
-}
-
-/*
-  Draws a single eye. The side parameter determins whether it is the
-  left or right eye rendered
-*/
-void drawEye(enum Side side)
-{
-	glColor3f(0.3f, 0.3f, 0.3f);
-	//right eye
-	glPushMatrix();
-	glTranslated(0, HEAD_RADIUS * 0.25, 0.0);
-	//place the eyes at the right depth -front of face
-	glTranslated(0.0, 0.0, HEAD_RADIUS - EYE_RADIUS);
-	//locate on correct side of the head
-	glTranslated((HEAD_RADIUS / 2) * side, 0.0, 0.0);
-	gluSphere(sphereQuadric, EYE_RADIUS, 20, 20);
-	glPopMatrix();
-}
-
-
-/*
-  Draws the bow part of the bowtie
-*/
-void drawBow(void)
-{
-	glColor3f(1.0f, 0.0f, 1.0f);
-	glPushMatrix();
-
-	//draw bow code
-	glTranslated(0.0, 0.0, BODY_RADIUS / 1.35);
-
-	glPushMatrix();
-	glTranslated(-(BOW_TIE_LENGTH / 2.0), 0, 0);
-	glRotated(90, 0, 0, 1);
-	glRotated(90, 1, 0, 0);
-	gluCylinder(cylinderQuadric, BOW_TIE_WIDTH, BOW_TIE_WIDTH, BOW_TIE_LENGTH, 10, 10);
-	glPopMatrix();
-
-	//draw the bow end caps
-	glPushMatrix();
-	glTranslated(-BOW_TIE_LENGTH / 2, 0.0, 0.0);
-	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(BOW_TIE_LENGTH / 2, 0.0, 0.0);
-	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
-	glPopMatrix();
-
-	glColor3f(0.8f, 0.0f, 0.8f);
-	//draw the bow knot
-	glPushMatrix();
-	gluSphere(sphereQuadric, BOW_TIE_WIDTH*1.5, 6, 6);
-	glPopMatrix();
-
-	glPopMatrix();
-}
-
-/*
- Draws the band for the bowtie bow
-*/
-void drawBand(void)
-{
-	glColor3f(1.0f, 0.0f, 1.0f);
-	glPushMatrix();
-
-	glRotated(90, 1, 0, 0);
-
-	if (!renderFillEnabled)
-		glutWireTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
-	else
-		glutSolidTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
-
-	glPopMatrix();
-
-}
 
 /*
   A simple ground plane in the XZ plane with vertex normals specified for lighting
@@ -831,15 +668,28 @@ void drawOrigin(void)
 	glEnd();
 }
 
-void basicSphere(void)
+void drawDrone(void)
 {
-	gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
+	glColor3f(1.0, 1.0, 1.0);
 
 	glPushMatrix();
+	basicSphere();
+	glPopMatrix();
 
-	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
-	glRotated(smHeading, 0, 1, 0); //first rotate
-	glScaled(1.0, 0.5, 1.0);
+	glPushMatrix();
+	glTranslated(0, BODY_RADIUS, 0);
+	glRotated(thetaPropellar, 0, 1, 0);
+	drawPropeller();
+	glPopMatrix();
+}
+
+void basicSphere(void)
+{
+	glPushMatrix();
+
+	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]); //then translate
+	glRotated(droneHeading, 0, 1, 0); //first rotate
+	glScaled(0.8, 0.5, 1.0);
 
 	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
 
@@ -849,20 +699,50 @@ void basicSphere(void)
 	glPopMatrix();
 }
 
-void propellar(void)
+void drawPropeller(void)
 {
-	gluQuadricDrawStyle(cylinderQuadric, GLU_FILL);
-	
 	glPushMatrix();
-	
-	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
-	glTranslated(-0.5, 0.0, 0.0);
-	glRotated(thetaPropellar, 0, 1, 0); //first rotate
-	//glScaled(1.0, 0.5, 1.0); // Scale if needed
 
-	
-	gluCylinder(cylinderQuadric, 0.05, 0.05, 1.0, 50, 50);
-
+	// draw first propeller wing
+	glPushMatrix();
+	glTranslated(-(PROPELLER_LENGTH / 2.0), 0, 0);
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
 	glPopMatrix();
 
+	// draw second propeller wing
+	glPushMatrix();
+	glTranslated(0, 0, -(PROPELLER_LENGTH / 2.0));
+	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
+	glPopMatrix();
+
+	//draw the first propellar end caps
+	glPushMatrix();
+	glTranslated(-PROPELLER_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(PROPELLER_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	// draw the second propellar end caps
+	glPushMatrix();
+	glTranslated(0.0, 0.0, -PROPELLER_LENGTH / 2);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0.0, 0.0, PROPELLER_LENGTH / 2);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	//draw the propellar center
+	glPushMatrix();
+	gluSphere(sphereQuadric, PROPELLER_WIDTH*1.5, 6, 6);
+	glPopMatrix();
+
+	glPopMatrix();
 }
