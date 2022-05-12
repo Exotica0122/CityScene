@@ -26,5 +26,8 @@
     <Text Include="CityScene2.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="Snowman3D.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

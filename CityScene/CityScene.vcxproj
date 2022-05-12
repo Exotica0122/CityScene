@@ -127,6 +127,7 @@
   <ItemGroup>
     <Text Include="CityScene.txt" />
     <Text Include="CityScene2.txt" />
+    <Text Include="Snowman3D.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

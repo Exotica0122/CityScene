@@ -1,16 +1,21 @@
 /******************************************************************************
  *
- * Animation v1.0 (23/02/2021)
+ * Computer Graphics Programming 2020 Project Template v1.0 (11/04/2021)
  *
- * This template provides a basic FPS-limited render loop for an animated scene.
+ * Based on: Animation Controller v1.0 (11/04/2021)
+ *
+ * This template provides a basic FPS-limited render loop for an animated scene,
+ * plus keyboard handling for smooth game-like control of an object such as a
+ * character or vehicle.
+ *
+ * A simple static lighting setup is provided via initLights(), which is not
+ * included in the animationalcontrol.c template. There are no other changes.
  *
  ******************************************************************************/
 
 #include <Windows.h>
 #include <freeglut.h>
 #include <math.h>
-#include <stdio.h>
-
 
  /******************************************************************************
   * Animation & Timing Setup
@@ -18,6 +23,9 @@
 
   // Target frame rate (number of Frames Per Second).
 #define TARGET_FPS 60				
+
+#define PI 3.14159265359
+#define DEG_TO_RAD PI/180
 
 // Ideal time each frame should be displayed for (in milliseconds).
 const unsigned int FRAME_TIME = 1000 / TARGET_FPS;
@@ -32,19 +40,83 @@ const float FRAME_TIME_SEC = (1000 / TARGET_FPS) / 1000.0f;
 unsigned int frameStartTime = 0;
 
 /******************************************************************************
+ * Some Simple Definitions of Motion
+ ******************************************************************************/
+
+#define MOTION_NONE 0				// No motion.
+#define MOTION_CLOCKWISE -1			// Clockwise rotation.
+#define MOTION_ANTICLOCKWISE 1		// Anticlockwise rotation.
+#define MOTION_BACKWARD -1			// Backward motion.
+#define MOTION_FORWARD 1			// Forward motion.
+#define MOTION_LEFT -1				// Leftward motion.
+#define MOTION_RIGHT 1				// Rightward motion.
+#define MOTION_DOWN -1				// Downward motion.
+#define MOTION_UP 1					// Upward motion.
+
+ // Represents the motion of an object on four axes (Yaw, Surge, Sway, and Heave).
+ // 
+ // You can use any numeric values, as specified in the comments for each axis. However,
+ // the MOTION_ definitions offer an easy way to define a "unit" movement without using
+ // magic numbers (e.g. instead of setting Surge = 1, you can set Surge = MOTION_FORWARD).
+ //
+typedef struct {
+	int Yaw;		// Turn about the Z axis	[<0 = Clockwise, 0 = Stop, >0 = Anticlockwise]
+	int Surge;		// Move forward or back		[<0 = Backward,	0 = Stop, >0 = Forward]
+	int Sway;		// Move sideways (strafe)	[<0 = Left, 0 = Stop, >0 = Right]
+	int Heave;		// Move vertically			[<0 = Down, 0 = Stop, >0 = Up]
+} motionstate4_t;
+
+/******************************************************************************
  * Keyboard Input Handling Setup
  ******************************************************************************/
 
- // Define all character keys used for input (add any new key definitions here).
- // Note: USE ONLY LOWERCASE CHARACTERS HERE. The keyboard handler provided converts all
- // characters typed by the user to lowercase, so the SHIFT key is ignored.
+ // Represents the state of a single keyboard key.Represents the state of a single keyboard key.
+typedef enum {
+	KEYSTATE_UP = 0,	// Key is not pressed.
+	KEYSTATE_DOWN		// Key is pressed down.
+} keystate_t;
 
-#define KEY_BASE			'1' // Select arm base.
-#define KEY_LOWER_ARM		'2' // Select lower arm joint.
-#define KEY_UPPER_ARM		'3' // Select upper arm joint.
-#define KEY_ANGLE_INC		'a' // Increment angle (rotate joint anti-clockwise)
-#define KEY_ANGLE_DEC		'd' // Decrement angle (rotate joint clockwise)
-#define KEY_EXIT			27	// Escape key.
+// Represents the states of a set of keys used to control an object's motion.
+typedef struct {
+	keystate_t MoveForward;
+	keystate_t MoveBackward;
+	keystate_t MoveLeft;
+	keystate_t MoveRight;
+	keystate_t MoveUp;
+	keystate_t MoveDown;
+	keystate_t TurnLeft;
+	keystate_t TurnRight;
+} motionkeys_t;
+
+// Current state of all keys used to control our "player-controlled" object's motion.
+motionkeys_t motionKeyStates = {
+	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
+	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP };
+
+// How our "player-controlled" object should currently be moving, solely based on keyboard input.
+//
+// Note: this may not represent the actual motion of our object, which could be subject to
+// other controls (e.g. mouse input) or other simulated forces (e.g. gravity).
+motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE };
+
+// Define all character keys used for input (add any new key definitions here).
+// Note: USE ONLY LOWERCASE CHARACTERS HERE. The keyboard handler provided converts all
+// characters typed by the user to lowercase, so the SHIFT key is ignored.
+
+#define KEY_MOVE_FORWARD	'w'
+#define KEY_MOVE_BACKWARD	's'
+#define KEY_MOVE_LEFT		'a'
+#define KEY_MOVE_RIGHT		'd'
+#define KEY_RENDER_FILL		'l'
+#define KEY_EXIT			27 // Escape key.
+
+// Define all GLUT special keys used for input (add any new key definitions here).
+
+#define SP_KEY_MOVE_UP		GLUT_KEY_UP
+#define SP_KEY_MOVE_DOWN	GLUT_KEY_DOWN
+#define SP_KEY_TURN_LEFT	GLUT_KEY_LEFT
+#define SP_KEY_TURN_RIGHT	GLUT_KEY_RIGHT
+
 
 /******************************************************************************
  * GLUT Callback Prototypes
@@ -53,7 +125,9 @@ unsigned int frameStartTime = 0;
 void display(void);
 void reshape(int width, int h);
 void keyPressed(unsigned char key, int x, int y);
+void specialKeyPressed(int key, int x, int y);
 void keyReleased(unsigned char key, int x, int y);
+void specialKeyReleased(int key, int x, int y);
 void idle(void);
 
 /******************************************************************************
@@ -63,50 +137,74 @@ void idle(void);
 void main(int argc, char **argv);
 void init(void);
 void think(void);
+void initLights(void);
 
-void base(void);
-void armSegment(float armWidth, float armHeight);
+void drawSnowman(void);
+void drawEye(enum Side side);
+void drawBow(void);
+void drawBand(void);
+
+void propellar(void);
+void basicSphere(void);
+void basicSphere(void);
+void drawOrigin(void);
+void basicGround(void);
 
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
  ******************************************************************************/
 
- // dimensions of the base
-#define BASE_HEIGHT 2.0
-#define BASE_RADIUS 1.0
+ // Render objects as filled polygons (1) or wireframes (0). Default filled.
+int renderFillEnabled = 1;
 
-// dimensions of the lower arm
-#define LOWER_ARM_HEIGHT 5.0
-#define LOWER_ARM_WIDTH  0.5
+//is the object to be drawn on the left (-x) or right (-y)
+enum Side {
+	leftSide = -1,
+	rightSide = 1,
+};
 
-// dimensions of the upper arm
-#define UPPER_ARM_HEIGHT 3.0
-#define UPPER_ARM_WIDTH  0.5
+// window dimensions
+GLint windowWidth = 800;
+GLint windowHeight = 600;
 
-// arm joints (this map to the indices in angles[])
-#define JOINT_BASE 0
-#define JOINT_LOWER_ARM 1
-#define JOINT_UPPER_ARM 2
+// current camera position
+GLfloat cameraPosition[] = { 0, 1, 15 };
+GLfloat cameraLookAt[] = { 0, 0, 0 };
 
-// joint motion directions
-#define MOVE_NONE 0			// Joint isn't moving
-#define MOVE_ANGLE_INC 1	// Increment angle (rotate anti-clockwise)
-#define MOVE_ANGLE_DEC -1	// Decrement angle (rotate clockwise)
+// pointer to quadric objects
+GLUquadricObj  *sphereQuadric;
+GLUquadricObj  *cylinderQuadric;
+GLUquadricObj *diskQuadric;
 
-// joint rotation speed
-const float JOINT_ROTATION_SPEED = 40.0f; // degrees per second
+//snowman hierachical model setup values
+//dimensions of the body
+#define BODY_RADIUS 2.0
+//dimensions of the head
+#define HEAD_RADIUS 1.5
+//dimensions of the eyes
+#define EYE_RADIUS 0.2
 
-// three angles for each of the threes joints in the robot
-GLfloat angles[] = { 0.0, 0.0, 0.0 };
+//bowtie dimensions
+#define BOW_TIE_LENGTH 0.7
+#define BOW_TIE_WIDTH 0.2
+#define BAND_WIDTH 0.2
 
-// current joint  (JOINT_BASE, JOINT_LOWER_ARM, or JOINT_UPPER_ARM)
-GLint joint = JOINT_BASE;
+//bowtie rotation variable
+float thetaBowTie = 0.0f;
 
-// direction the current joint is moving (MOVE_NONE, MOVE_ANGLE_DEC, or MOVE_ANGLE_INC)
-GLint jointMoveDir = MOVE_NONE;
+GLfloat smPosition[3] = { 0.0f, 0.0f, 0.0f };
+const float smSpeed = 2.0f; // Metres per second
+float smHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
 
-// pointer to quadric object
-GLUquadricObj  *myQuadric;
+
+#define PROPELLAR_RADIUS 1.0
+
+float thetaPropellar = 0.0f;
+
+GLfloat propellarPosition[3] = { 0.f, 0.f, 0.f };
+const float propellarSpeed = 2.f;
+float propellarHeading = 0.f;
+
 
 /******************************************************************************
  * Entry Point (don't put anything except the main function here)
@@ -117,8 +215,8 @@ void main(int argc, char **argv)
 	// Initialize the OpenGL window.
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(500, 500);
-	glutCreateWindow("Animation");
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutCreateWindow("Snowman Animation");
 
 	// Set up the scene.
 	init();
@@ -130,7 +228,9 @@ void main(int argc, char **argv)
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyPressed);
+	glutSpecialFunc(specialKeyPressed);
 	glutKeyboardUpFunc(keyReleased);
+	glutSpecialUpFunc(specialKeyReleased);
 	glutIdleFunc(idle);
 
 	// Record when we started rendering the very first frame (which should happen after we call glutMainLoop).
@@ -153,29 +253,34 @@ void main(int argc, char **argv)
  */
 void display(void)
 {
-	// clear the window
+	// clear the screen and depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// start with a fresh transformation matrix
+	// load the identity matrix into the model view matrix
 	glLoadIdentity();
 
-	// rotate the base and draw it  (notice that we don't use push and pop)
-	glRotatef(angles[0], 0.0, 1.0, 0.0);
-	glColor3f(joint == JOINT_BASE ? 1.0f : 0.5f, 0.0, 0.0);
-	base();
+	//set up our camera - slightly up in the y so we can see the ground plane
+	gluLookAt(cameraPosition[0], cameraPosition[1], cameraPosition[2],
+		cameraLookAt[0], cameraLookAt[1], cameraLookAt[2],
+		0, 1, 0);
 
-	glTranslated(0.0, BASE_HEIGHT, 0.0);
-	glRotatef(angles[1], 0.0, 0.0, 1.0);
-	glColor3f(joint == JOINT_LOWER_ARM ? 1.0f : 0.5f, 0.0, 0.0);
-	armSegment(LOWER_ARM_WIDTH, LOWER_ARM_HEIGHT);
+	drawOrigin();
 
-	// rotate the upper arm, move it to the end of the lower arm and draw it
-	glTranslatef(0.0, LOWER_ARM_HEIGHT, 0.0);
-	glRotatef(angles[2], 0.0, 0.0, 1.0);
-	glColor3f(joint == JOINT_UPPER_ARM ? 1.0f : 0.5f, 0.0, 0.0);
-	armSegment(UPPER_ARM_WIDTH, UPPER_ARM_HEIGHT);
+	glColor3f(1.0f, 1.0f, 1.0f);
 
+	//only apply the transforms inside the push/pop to the snowman and ground
+	glPushMatrix();
 
+	drawSnowman();
+
+	//propellar();
+
+	//draw the ground
+	basicGround();
+
+	glPopMatrix();
+
+	// swap the drawing buffers
 	glutSwapBuffers();
 }
 
@@ -184,25 +289,19 @@ void display(void)
 */
 void reshape(int width, int h)
 {
-	// set the viewport
-	glViewport(0, 0, width, h);
+	windowHeight = h;
+	windowWidth = width;
 
-	// set the orthographic projection
+	glViewport(0, 0, windowWidth, windowHeight);
+
 	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	if (width <= h)
-		glOrtho(-10.0, 10.0,
-			-5.0 * (GLfloat)h / (GLfloat)width, 15.0 * (GLfloat)h / (GLfloat)width,
-			-10.0, 10.0);
-	else
-		glOrtho(-10.0 * (GLfloat)width / (GLfloat)h, 10.0 * (GLfloat)width / (GLfloat)h,
-			-5.0, 15.0,
-			-10.0, 10.0);
 
-	// return to model view mode
+	glLoadIdentity();
+
+	gluPerspective(60, (float)windowWidth / (float)windowHeight, 1, 20);
+
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
 }
 
 /*
@@ -211,24 +310,89 @@ void reshape(int width, int h)
 void keyPressed(unsigned char key, int x, int y)
 {
 	switch (tolower(key)) {
-	case KEY_BASE:
-		joint = JOINT_BASE;
+
+		/*
+			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
+
+			Whenever one of our movement keys is pressed, we do two things:
+			(1) Update motionKeyStates to record that the key is held down. We use
+				this later in the keyReleased callback.
+			(2) Update the relevant axis in keyboardMotion to set the new direction
+				we should be moving in. The most recent key always "wins" (e.g. if
+				you're holding down KEY_MOVE_LEFT then also pressed KEY_MOVE_RIGHT,
+				our object will immediately start moving right).
+		*/
+	case KEY_MOVE_FORWARD:
+		motionKeyStates.MoveForward = KEYSTATE_DOWN;
+		keyboardMotion.Surge = MOTION_FORWARD;
 		break;
-	case KEY_LOWER_ARM:
-		joint = JOINT_LOWER_ARM;
+	case KEY_MOVE_BACKWARD:
+		motionKeyStates.MoveBackward = KEYSTATE_DOWN;
+		keyboardMotion.Surge = MOTION_BACKWARD;
 		break;
-	case KEY_UPPER_ARM:
-		joint = JOINT_UPPER_ARM;
+	case KEY_MOVE_LEFT:
+		motionKeyStates.MoveLeft = KEYSTATE_DOWN;
+		keyboardMotion.Sway = MOTION_LEFT;
 		break;
-	case KEY_ANGLE_DEC:
-		jointMoveDir = MOVE_ANGLE_DEC;
+	case KEY_MOVE_RIGHT:
+		motionKeyStates.MoveRight = KEYSTATE_DOWN;
+		keyboardMotion.Sway = MOTION_RIGHT;
 		break;
-	case KEY_ANGLE_INC:
-		jointMoveDir = MOVE_ANGLE_INC;
+
+		/*
+			Other Keyboard Functions (add any new character key controls here)
+
+			Rather than using literals (e.g. "t" for spotlight), create a new KEY_
+			definition in the "Keyboard Input Handling Setup" section of this file.
+			For example, refer to the existing keys used here (KEY_MOVE_FORWARD,
+			KEY_MOVE_LEFT, KEY_EXIT, etc).
+		*/
+	case KEY_RENDER_FILL:
+		renderFillEnabled = !renderFillEnabled;
 		break;
 	case KEY_EXIT:
 		exit(0);
 		break;
+	}
+}
+
+/*
+	Called each time a "special" key (e.g. an arrow key) is pressed.
+*/
+void specialKeyPressed(int key, int x, int y)
+{
+	switch (key) {
+
+		/*
+			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
+
+			This works as per the motion keys in keyPressed.
+		*/
+	case SP_KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_DOWN;
+		keyboardMotion.Heave = MOTION_UP;
+		break;
+	case SP_KEY_MOVE_DOWN:
+		motionKeyStates.MoveDown = KEYSTATE_DOWN;
+		keyboardMotion.Heave = MOTION_DOWN;
+		break;
+	case SP_KEY_TURN_LEFT:
+		motionKeyStates.TurnLeft = KEYSTATE_DOWN;
+		keyboardMotion.Yaw = MOTION_ANTICLOCKWISE;
+		break;
+	case SP_KEY_TURN_RIGHT:
+		motionKeyStates.TurnRight = KEYSTATE_DOWN;
+		keyboardMotion.Yaw = MOTION_CLOCKWISE;
+		break;
+
+		/*
+			Other Keyboard Functions (add any new special key controls here)
+
+			Rather than directly using the GLUT constants (e.g. GLUT_KEY_F1), create
+			a new SP_KEY_ definition in the "Keyboard Input Handling Setup" section of
+			this file. For example, refer to the existing keys used here (SP_KEY_MOVE_UP,
+			SP_KEY_TURN_LEFT, etc).
+		*/
 	}
 }
 
@@ -238,11 +402,85 @@ void keyPressed(unsigned char key, int x, int y)
 void keyReleased(unsigned char key, int x, int y)
 {
 	switch (tolower(key)) {
-	case KEY_ANGLE_DEC:
-	case KEY_ANGLE_INC:
-		jointMoveDir = MOVE_NONE;
+
+		/*
+			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
+
+			Whenever one of our movement keys is released, we do two things:
+			(1) Update motionKeyStates to record that the key is no longer held down;
+				we need to know when we get to step (2) below.
+			(2) Update the relevant axis in keyboardMotion to set the new direction
+				we should be moving in. This gets a little complicated to ensure
+				the controls work smoothly. When the user releases a key that moves
+				in one direction (e.g. KEY_MOVE_RIGHT), we check if its "opposite"
+				key (e.g. KEY_MOVE_LEFT) is pressed down. If it is, we begin moving
+				in that direction instead. Otherwise, we just stop moving.
+		*/
+	case KEY_MOVE_FORWARD:
+		motionKeyStates.MoveForward = KEYSTATE_UP;
+		keyboardMotion.Surge = (motionKeyStates.MoveBackward == KEYSTATE_DOWN) ? MOTION_BACKWARD : MOTION_NONE;
+		break;
+	case KEY_MOVE_BACKWARD:
+		motionKeyStates.MoveBackward = KEYSTATE_UP;
+		keyboardMotion.Surge = (motionKeyStates.MoveForward == KEYSTATE_DOWN) ? MOTION_FORWARD : MOTION_NONE;
+		break;
+	case KEY_MOVE_LEFT:
+		motionKeyStates.MoveLeft = KEYSTATE_UP;
+		keyboardMotion.Sway = (motionKeyStates.MoveRight == KEYSTATE_DOWN) ? MOTION_RIGHT : MOTION_NONE;
+		break;
+	case KEY_MOVE_RIGHT:
+		motionKeyStates.MoveRight = KEYSTATE_UP;
+		keyboardMotion.Sway = (motionKeyStates.MoveLeft == KEYSTATE_DOWN) ? MOTION_LEFT : MOTION_NONE;
 		break;
 
+		/*
+			Other Keyboard Functions (add any new character key controls here)
+
+			Note: If you only care when your key is first pressed down, you don't have to
+			add anything here. You only need to put something in keyReleased if you care
+			what happens when the user lets go, like we do with our movement keys above.
+			For example: if you wanted a spotlight to come on while you held down "t", you
+			would need to set a flag to turn the spotlight on in keyPressed, and update the
+			flag to turn it off in keyReleased.
+		*/
+	}
+}
+
+/*
+	Called each time a "special" key (e.g. an arrow key) is released.
+*/
+void specialKeyReleased(int key, int x, int y)
+{
+	switch (key) {
+		/*
+			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
+
+			This works as per the motion keys in keyReleased.
+		*/
+	case SP_KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_UP;
+		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
+		break;
+	case SP_KEY_MOVE_DOWN:
+		motionKeyStates.MoveDown = KEYSTATE_UP;
+		keyboardMotion.Heave = (motionKeyStates.MoveUp == KEYSTATE_DOWN) ? MOTION_UP : MOTION_NONE;
+		break;
+	case SP_KEY_TURN_LEFT:
+		motionKeyStates.TurnLeft = KEYSTATE_UP;
+		keyboardMotion.Yaw = (motionKeyStates.TurnRight == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+		break;
+	case SP_KEY_TURN_RIGHT:
+		motionKeyStates.TurnRight = KEYSTATE_UP;
+		keyboardMotion.Yaw = (motionKeyStates.TurnLeft == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
+		break;
+
+		/*
+			Other Keyboard Functions (add any new special key controls here)
+
+			As per keyReleased, you only need to handle the key here if you want something
+			to happen when the user lets go. If you just want something to happen when the
+			key is first pressed, add you code to specialKeyPressed instead.
+		*/
 	}
 }
 
@@ -284,13 +522,21 @@ void idle(void)
  */
 void init(void)
 {
-	// set the clear color and the drawing color
-	glClearColor(1.0, 1.0, 1.0, 1.0);
 
-	// create a new quadric for drawing the cylinder
-	myQuadric = gluNewQuadric();
-	// render it as wireframe object
-	gluQuadricDrawStyle(myQuadric, GLU_LINE);
+	// enable depth testing
+	glEnable(GL_DEPTH_TEST);
+
+	// set background color to be black
+	glClearColor(0, 0, 0, 1.0);
+
+
+	initLights();
+
+	//create the quadric for drawing the sphere
+	sphereQuadric = gluNewQuadric();
+
+	//create the quadric for drawing the cylinder
+	cylinderQuadric = gluNewQuadric();
 }
 
 /*
@@ -303,39 +549,320 @@ void init(void)
 */
 void think(void)
 {
-	if (jointMoveDir != MOVE_NONE) {
-		// move the current joint in the right direction (jointMoveDir) at our predefined constant speed
-		angles[joint] = fmodf(angles[joint] + jointMoveDir * JOINT_ROTATION_SPEED * FRAME_TIME_SEC, 360.0f);
+
+	thetaBowTie += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
+	thetaPropellar += 360 * FRAME_TIME_SEC;
+
+	/*
+		Keyboard motion handler: complete this section to make your "player-controlled"
+		object respond to keyboard input.
+	*/
+	if (keyboardMotion.Yaw != MOTION_NONE) {
+		smHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+	}
+	if (keyboardMotion.Surge != MOTION_NONE) {
+		smPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
+		cameraLookAt[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
+	}
+	if (keyboardMotion.Sway != MOTION_NONE) {
+		smPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
+		cameraLookAt[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
+	}
+	if (keyboardMotion.Heave != MOTION_NONE) {
+		smPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
+		cameraLookAt[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
 	}
 }
 
-void base(void)
+/*
+	Initialise OpenGL lighting before we begin the render loop.
+
+	Note (advanced): If you're using dynamic lighting (e.g. lights that move around, turn on or
+	off, or change colour) you may want to replace this with a drawLights function that gets called
+	at the beginning of display() instead of init().
+*/
+void initLights(void)
 {
-	glPushMatrix();
+	// Simple lighting setup
+	GLfloat globalAmbient[] = { 0.4f, 0.4f, 0.4f, 1 };
+	GLfloat lightPosition[] = { 5.0f, 5.0f, 5.0f, 1.0f };
+	GLfloat ambientLight[] = { 0, 0, 0, 1 };
+	GLfloat diffuseLight[] = { 1, 1, 1, 1 };
+	GLfloat specularLight[] = { 1, 1, 1, 1 };
 
-	// rotate cylinder to align with y axis (originally aligned with the Z axis) 
-	glRotatef(-90.0, 1.0, 0.0, 0.0);
+	// Configure global ambient lighting.
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 
-	// cyliner aligned with z axis, render with
-	// 10 slices for base and 10 along length 
-	gluCylinder(myQuadric, BASE_RADIUS, BASE_RADIUS, BASE_HEIGHT, 10, 10);
+	// Configure Light 0.
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
 
-	glPopMatrix();
+	// Enable lighting
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
+	// Make GL normalize the normal vectors we supply.
+	glEnable(GL_NORMALIZE);
+
+	// Enable use of simple GL colours as materials.
+	glEnable(GL_COLOR_MATERIAL);
 }
-
-void armSegment(float armWidth, float armHeight)
-{
-	glPushMatrix();
-	// move the arm to be above the origin
-	glTranslatef(0.0f, 0.5f * armHeight, 0.0f);
-
-	// scale the arm so that it is long and thin
-	glScalef(armWidth, armHeight, armWidth);
-
-	// draw the arm
-	glutWireCube(1.0);
-	glPopMatrix();
-}
-
 
 /******************************************************************************/
+
+
+/*
+	Draw a snowman with a rotating bowtie either filled or wireframe
+*/
+void drawSnowman(void)
+{
+	glColor3f(1.0, 1.0, 1.0);
+
+	if (!renderFillEnabled)
+		gluQuadricDrawStyle(sphereQuadric, GLU_LINE);
+	else
+		gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
+
+	glPushMatrix();
+
+	//This allows up to move the snowman all its parts will follow
+	//if we have set this up correctly
+	//in Session 13 we will move the snowman mahattan style using our animationcontroller.c template
+
+		//draw the body
+		gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
+
+	//move the head origin, center of the sphere to the top of the body
+	glTranslated(0.0, BODY_RADIUS, 0.0);
+
+
+	glPushMatrix();
+
+	//move the head to sit on top of body
+	glTranslated(0.0, HEAD_RADIUS, 0.0);
+	//draw the head
+	gluSphere(sphereQuadric, HEAD_RADIUS, 50, 50);
+
+
+	//eyes inherit the *all* the head translations
+	//and any body transforms
+	//place them a little bit higher	
+	//right eye
+	drawEye(rightSide);
+	//left eye
+	drawEye(leftSide);
+
+	glPopMatrix();
+
+
+	//draw the band relative to the body
+	drawBand();
+
+	//draw the bowtie relative to the band
+	//this way the bowtie inherits the body and head transforms
+	//if added a transform for the band e.g. we rotated the band above then
+	//this should be setup so that it inherits that transfrom
+	glPushMatrix();
+	glRotated(thetaBowTie, 0, 0, 1);
+	drawBow();
+	glPopMatrix();
+
+
+	glPopMatrix(); //end global snowman translate
+}
+
+/*
+  Draws a single eye. The side parameter determins whether it is the
+  left or right eye rendered
+*/
+void drawEye(enum Side side)
+{
+	glColor3f(0.3f, 0.3f, 0.3f);
+	//right eye
+	glPushMatrix();
+	glTranslated(0, HEAD_RADIUS * 0.25, 0.0);
+	//place the eyes at the right depth -front of face
+	glTranslated(0.0, 0.0, HEAD_RADIUS - EYE_RADIUS);
+	//locate on correct side of the head
+	glTranslated((HEAD_RADIUS / 2) * side, 0.0, 0.0);
+	gluSphere(sphereQuadric, EYE_RADIUS, 20, 20);
+	glPopMatrix();
+}
+
+
+/*
+  Draws the bow part of the bowtie
+*/
+void drawBow(void)
+{
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glPushMatrix();
+
+	//draw bow code
+	glTranslated(0.0, 0.0, BODY_RADIUS / 1.35);
+
+	glPushMatrix();
+	glTranslated(-(BOW_TIE_LENGTH / 2.0), 0, 0);
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, BOW_TIE_WIDTH, BOW_TIE_WIDTH, BOW_TIE_LENGTH, 10, 10);
+	glPopMatrix();
+
+	//draw the bow end caps
+	glPushMatrix();
+	glTranslated(-BOW_TIE_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(BOW_TIE_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glColor3f(0.8f, 0.0f, 0.8f);
+	//draw the bow knot
+	glPushMatrix();
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH*1.5, 6, 6);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+/*
+ Draws the band for the bowtie bow
+*/
+void drawBand(void)
+{
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glPushMatrix();
+
+	glRotated(90, 1, 0, 0);
+
+	if (!renderFillEnabled)
+		glutWireTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
+	else
+		glutSolidTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
+
+	glPopMatrix();
+
+}
+
+/*
+  A simple ground plane in the XZ plane with vertex normals specified for lighting
+  the top face of the ground. The bottom face is not lit.
+*/
+
+void basicGround(void)
+{
+	glColor3d(0.8, 0.9, 1);
+
+	glPushMatrix();
+	glTranslated(0, -BODY_RADIUS / 2, 0); //shifted this so looks like in snow
+
+	glBegin(GL_QUADS);
+	//back right corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, -10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, -10);
+	//front right corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 10);
+	//front left corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 10);
+	//back left corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, -10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, -10);
+
+	glEnd();
+
+	glPopMatrix();
+}
+
+void drawOrigin(void)
+{
+	glColor3f(0.0f, 1.0f, 1.0f);
+	glutWireSphere(0.1, 10, 10);
+	glBegin(GL_LINES);
+
+	//x axis -red
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(2.0f, 0.0f, 0.0f);
+
+	//y axis -green
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 2.0f, 0.0f);
+
+	//z axis - blue
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 2.0f);
+
+	glEnd();
+}
+
+void basicSphere(void)
+{
+	gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
+
+	glPushMatrix();
+
+	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
+	glRotated(smHeading, 0, 1, 0); //first rotate
+	glScaled(1.0, 0.5, 1.0);
+
+	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
+
+	glTranslated(0.0, BODY_RADIUS, 0.0);
+
+
+	glPopMatrix();
+}
+
+void propellar(void)
+{
+	gluQuadricDrawStyle(cylinderQuadric, GLU_FILL);
+	
+	glPushMatrix();
+	
+	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
+	glTranslated(-0.5, 0.0, 0.0);
+	glRotated(thetaPropellar, 0, 1, 0); //first rotate
+	//glScaled(1.0, 0.5, 1.0); // Scale if needed
+
+	
+	gluCylinder(cylinderQuadric, 0.05, 0.05, 1.0, 50, 50);
+
+	glPopMatrix();
+
+}

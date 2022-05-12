@@ -1,0 +1,218 @@
+/*
+   Draw an origin marker for modelling purposes
+ */
+void drawOrigin(void)
+{
+	glColor3f(0.0f, 1.0f, 1.0f);
+	glutWireSphere(0.1, 10, 10);
+	glBegin(GL_LINES);
+
+	//x axis -red
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(2.0f, 0.0f, 0.0f);
+
+	//y axis -green
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 2.0f, 0.0f);
+
+	//z axis - blue
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 2.0f);
+
+	glEnd();
+}
+
+
+/*
+	Draw a snowman with a rotating bowtie either filled or wireframe
+*/
+void drawSnowman(void)
+{
+	glColor3f(1.0, 1.0, 1.0);
+
+	if (!renderFillEnabled)
+		gluQuadricDrawStyle(sphereQuadric, GLU_LINE);
+	else
+		gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
+
+	glPushMatrix();
+
+	//This allows up to move the snowman all its parts will follow
+	//if we have set this up correctly
+	//in Session 13 we will move the snowman mahattan style using our animationcontroller.c template
+	glTranslagc
+
+	//draw the body
+	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
+
+	//move the head origin, center of the sphere to the top of the body
+	glTranslated(0.0, BODY_RADIUS, 0.0);
+
+
+	glPushMatrix();
+
+	//move the head to sit on top of body
+	glTranslated(0.0, HEAD_RADIUS, 0.0);
+	//draw the head
+	gluSphere(sphereQuadric, HEAD_RADIUS, 50, 50);
+
+
+	//eyes inherit the *all* the head translations
+	//and any body transforms
+	//place them a little bit higher	
+	//right eye
+	drawEye(rightSide);
+	//left eye
+	drawEye(leftSide);
+
+	glPopMatrix();
+
+
+	//draw the band relative to the body
+	drawBand();
+
+	//draw the bowtie relative to the band
+	//this way the bowtie inherits the body and head transforms
+	//if added a transform for the band e.g. we rotated the band above then
+	//this should be setup so that it inherits that transfrom
+	glPushMatrix();
+	glRotated(thetaBowTie, 0, 0, 1);
+	drawBow();
+	glPopMatrix();
+
+
+	glPopMatrix(); //end global snowman translate
+}
+
+/*
+  Draws a single eye. The side parameter determins whether it is the
+  left or right eye rendered
+*/
+void drawEye(enum Side side)
+{
+	glColor3f(0.3f, 0.3f, 0.3f);
+	//right eye
+	glPushMatrix();
+	glTranslated(0, HEAD_RADIUS * 0.25, 0.0);
+	//place the eyes at the right depth -front of face
+	glTranslated(0.0, 0.0, HEAD_RADIUS - EYE_RADIUS);
+	//locate on correct side of the head
+	glTranslated((HEAD_RADIUS / 2) * side, 0.0, 0.0);
+	gluSphere(sphereQuadric, EYE_RADIUS, 20, 20);
+	glPopMatrix();
+}
+
+
+/*
+  Draws the bow part of the bowtie
+*/
+void drawBow(void)
+{
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glPushMatrix();
+
+	//draw bow code
+	glTranslated(0.0, 0.0, BODY_RADIUS / 1.35);
+
+	glPushMatrix();
+	glTranslated(-(BOW_TIE_LENGTH / 2.0), 0, 0);
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, BOW_TIE_WIDTH, BOW_TIE_WIDTH, BOW_TIE_LENGTH, 10, 10);
+	glPopMatrix();
+
+	//draw the bow end caps
+	glPushMatrix();
+	glTranslated(-BOW_TIE_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(BOW_TIE_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glColor3f(0.8f, 0.0f, 0.8f);
+	//draw the bow knot
+	glPushMatrix();
+	gluSphere(sphereQuadric, BOW_TIE_WIDTH*1.5, 6, 6);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+/*
+ Draws the band for the bowtie bow
+*/
+void drawBand(void)
+{
+	glColor3f(1.0f, 0.0f, 1.0f);
+	glPushMatrix();
+
+	glRotated(90, 1, 0, 0);
+
+	if (!renderFillEnabled)
+		glutWireTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
+	else
+		glutSolidTorus(BAND_WIDTH, (BODY_RADIUS + BAND_WIDTH) / 1.8, 10, 50);
+
+	glPopMatrix();
+
+}
+
+/*
+  A simple ground plane in the XZ plane with vertex normals specified for lighting
+  the top face of the ground. The bottom face is not lit.
+*/
+void basicGround(void)
+{
+	glColor3d(0.8, 0.9, 1);
+
+	glPushMatrix();
+	glTranslated(0, -BODY_RADIUS / 2, 0); //shifted this so looks like in snow
+
+	glBegin(GL_QUADS);
+	//back right corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, -10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, -10);
+	//front right corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(10, 0, 10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 10);
+	//front left corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 10);
+	//back left corner
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, 0);
+	glNormal3d(0, 1, 0);
+	glVertex3d(-10, 0, -10);
+	glNormal3d(0, 1, 0);
+	glVertex3d(0, 0, -10);
+
+	glEnd();
+
+	glPopMatrix();
+}
