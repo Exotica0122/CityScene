@@ -18,6 +18,7 @@
 #include <Windows.h>
 #include <freeglut.h>
 #include <math.h>
+#include <stdio.h>
 
 /******************************************************************************
 * Animation & Timing Setup
@@ -138,8 +139,9 @@ void think(void);
 void initLights(void);
 
 void drawDrone(void);
+void drawBody(void);
+void drawArm(void);
 void drawPropeller(void);
-void basicSphere(void);
 void drawOrigin(void);
 void basicGround(void);
 
@@ -174,9 +176,14 @@ GLUquadricObj *diskQuadric;
 
 //drone hierachical model setup values
 //dimensions of the body
-#define BODY_RADIUS 2.0
+#define BODY_RADIUS 1.25
+#define BODY_Y_SCALE 0.5
 
-//propellar dimensions
+// arm dimensions
+#define DRONE_ARM_LENGTH 1.5
+#define DRONE_ARM_WIDTH 0.1
+
+// propellar dimensions
 #define PROPELLER_LENGTH 1.5
 #define PROPELLER_WIDTH 0.1
 
@@ -533,6 +540,7 @@ void think(void)
 	*/
 	if (keyboardMotion.Yaw != MOTION_NONE) {
 		droneHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		printf("Drone Heading: %d\n", droneHeading);
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
 		dronePosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC; //20 m/sec
@@ -671,30 +679,94 @@ void drawOrigin(void)
 void drawDrone(void)
 {
 	glColor3f(1.0, 1.0, 1.0);
+	glPushMatrix();
+
+	// moving the drone
+	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]);
+	glRotated(droneHeading, 0, 1, 0); //first rotate
+
+	// draw the body
+	drawBody();
 
 	glPushMatrix();
-	basicSphere();
+	glRotated(45, 0, 1, 0);
+
+	// left side arm
+	glPushMatrix();
+	glTranslated(-(BODY_RADIUS * 1.5), 0, 0);
+	drawArm();
 	glPopMatrix();
 
+	// right side arm
 	glPushMatrix();
-	glTranslated(0, BODY_RADIUS, 0);
-	glRotated(thetaPropellar, 0, 1, 0);
-	drawPropeller();
+	glTranslated(BODY_RADIUS * 1.5, 0, 0);
+	glRotated(180, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	// front arm
+	glPushMatrix();
+	glTranslated(0, 0, BODY_RADIUS * 1.5);
+	glRotated(90, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	// back arm
+	glPushMatrix();
+	glTranslated(0, 0, -(BODY_RADIUS * 1.5));
+	glRotated(-90, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	glPopMatrix();
+
+
 	glPopMatrix();
 }
 
-void basicSphere(void)
+void drawBody(void)
 {
 	glPushMatrix();
 
-	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]); //then translate
-	glRotated(droneHeading, 0, 1, 0); //first rotate
-	glScaled(0.8, 0.5, 1.0);
+	// squash the y axis
+	glScaled(BODY_RADIUS, BODY_Y_SCALE, BODY_RADIUS);
 
 	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
 
 	glTranslated(0.0, BODY_RADIUS, 0.0);
 
+	glPopMatrix();
+}
+
+void drawArm(void)
+{
+	glPushMatrix();
+
+	// bottom arm
+	//glTranslated(-(DRONE_ARM_LENGTH / 2.0), 0, 0);
+
+	glPushMatrix();
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH, 10, 10);
+	glPopMatrix();
+
+	// arm cap
+	glPushMatrix();
+	gluSphere(sphereQuadric, DRONE_ARM_WIDTH*1.5, 10, 10);
+	glPopMatrix();
+
+	// up-right arm cap
+
+	glPushMatrix();
+	glRotated(90, -1, 0, 0);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 2, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, DRONE_ARM_LENGTH / 2, 0);
+	drawPropeller();
+	glPopMatrix();
 
 	glPopMatrix();
 }
@@ -702,6 +774,8 @@ void basicSphere(void)
 void drawPropeller(void)
 {
 	glPushMatrix();
+
+	glRotated(thetaPropellar, 0, 1, 0);
 
 	// draw first propeller wing
 	glPushMatrix();
