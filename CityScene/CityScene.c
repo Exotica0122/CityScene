@@ -172,8 +172,9 @@ GLint windowHeight = 720;
 // current camera position
 GLfloat cameraPosition[] = { 0, 1, 15 };
 
+float cameraAngle = 0.0f;
 float cameraHeading = 0.0f;
-float cameraDistanceXY = 500.f;
+float cameraDistanceXY = 10.f;
 
 
 // pointer to quadric objects
@@ -554,8 +555,8 @@ void think(void)
 			droneHeading = 360;
 		printf("Drone Heading: %f\n", droneHeading);
 
-		cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - 0) * DEG_TO_RAD)) * 10;
-		cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - 0) * DEG_TO_RAD)) * 10;
+		cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+		cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
 		dronePosition[0] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
@@ -615,8 +616,9 @@ void initLights(void)
 
 void initCameraPosition(void)
 {
-	cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - 0) * DEG_TO_RAD)) * 10;
-	cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - 0) * DEG_TO_RAD)) * 10;
+	cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+	cameraPosition[1] = 2;
+	cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 }
 
 /******************************************************************************/
