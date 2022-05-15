@@ -11,21 +11,21 @@
  * A simple static lighting setup is provided via initLights(), which is not
  * included in the animationalcontrol.c template. There are no other changes.
  *
+ * Author: Peter An
+ *
  ******************************************************************************/
 
 #include <Windows.h>
 #include <freeglut.h>
 #include <math.h>
+#include <stdio.h>
 
- /******************************************************************************
-  * Animation & Timing Setup
-  ******************************************************************************/
+/******************************************************************************
+* Animation & Timing Setup
+******************************************************************************/
 
-  // Target frame rate (number of Frames Per Second).
+// Target frame rate (number of Frames Per Second).
 #define TARGET_FPS 60				
-
-#define PI 3.14159265359
-#define DEG_TO_RAD PI/180
 
 // Ideal time each frame should be displayed for (in milliseconds).
 const unsigned int FRAME_TIME = 1000 / TARGET_FPS;
@@ -70,7 +70,7 @@ typedef struct {
  * Keyboard Input Handling Setup
  ******************************************************************************/
 
- // Represents the state of a single keyboard key.Represents the state of a single keyboard key.
+// Represents the state of a single keyboard key.Represents the state of a single keyboard key.
 typedef enum {
 	KEYSTATE_UP = 0,	// Key is not pressed.
 	KEYSTATE_DOWN		// Key is pressed down.
@@ -107,7 +107,6 @@ motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_
 #define KEY_MOVE_BACKWARD	's'
 #define KEY_MOVE_LEFT		'a'
 #define KEY_MOVE_RIGHT		'd'
-#define KEY_RENDER_FILL		'l'
 #define KEY_EXIT			27 // Escape key.
 
 // Define all GLUT special keys used for input (add any new key definitions here).
@@ -139,17 +138,22 @@ void init(void);
 void think(void);
 void initLights(void);
 
-void propellar(void);
-void basicSphere(void);
-void basicSphere(void);
+void cameraUpdate(void);
+void drawDrone(void);
+void drawBody(void);
+void drawArm(void);
+void drawPropeller(void);
 void drawOrigin(void);
 void basicGround(void);
 
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
  ******************************************************************************/
+// Angle tools
+#define PI 3.14159265359
+#define DEG_TO_RAD PI/180
 
- // Render objects as filled polygons (1) or wireframes (0). Default filled.
+// Render objects as filled polygons (1) or wireframes (0). Default filled.
 int renderFillEnabled = 1;
 
 //is the object to be drawn on the left (-x) or right (-y)
@@ -159,46 +163,45 @@ enum Side {
 };
 
 // window dimensions
-GLint windowWidth = 800;
-GLint windowHeight = 600;
+GLint windowWidth = 1280;
+GLint windowHeight = 720;
+
+// Camera
 
 // current camera position
 GLfloat cameraPosition[] = { 0, 1, 15 };
 GLfloat cameraLookAt[] = { 0, 0, 0 };
 
+GLfloat yaw = -90.0f;
+GLfloat pitch = 0.0f;
+
+GLfloat front[] = { 0.f, 0.f, -1.f };
+GLfloat right[] = { 1, 0, 0 };
+GLfloat worldUp[] = { 0.f, 1.f, 0.f };
+
+
 // pointer to quadric objects
-GLUquadricObj  *sphereQuadric;
-GLUquadricObj  *cylinderQuadric;
-GLUquadricObj *diskQuadric;
+GLUquadricObj *sphereQuadric;
+GLUquadricObj *cylinderQuadric;
 
-//snowman hierachical model setup values
+//drone hierachical model setup values
 //dimensions of the body
-#define BODY_RADIUS 2.0
-//dimensions of the head
-#define HEAD_RADIUS 1.5
-//dimensions of the eyes
-#define EYE_RADIUS 0.2
+#define BODY_RADIUS 1.25
+#define BODY_Y_SCALE 0.5
 
-//bowtie dimensions
-#define BOW_TIE_LENGTH 0.7
-#define BOW_TIE_WIDTH 0.2
-#define BAND_WIDTH 0.2
+// arm dimensions
+#define DRONE_ARM_LENGTH 1.5
+#define DRONE_ARM_WIDTH 0.1
 
-//bowtie rotation variable
-float thetaBowTie = 0.0f;
+// propellar dimensions
+#define PROPELLER_LENGTH 1.5
+#define PROPELLER_WIDTH 0.1
 
-GLfloat smPosition[3] = { 0.0f, 0.0f, 0.0f };
-const float smSpeed = 2.0f; // Metres per second
-float smHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
-
-
-#define PROPELLAR_RADIUS 1.0
+GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
+const float droneSpeed = 2.0f; // Metres per second
+float droneHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
 
 float thetaPropellar = 0.0f;
-
-GLfloat propellarPosition[3] = { 0.f, 0.f, 0.f };
-const float propellarSpeed = 2.f;
-float propellarHeading = 0.f;
 
 
 /******************************************************************************
@@ -211,7 +214,7 @@ void main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(windowWidth, windowHeight);
-	glutCreateWindow("Snowman Animation");
+	glutCreateWindow("Drone Animation");
 
 	// Set up the scene.
 	init();
@@ -266,7 +269,7 @@ void display(void)
 	//only apply the transforms inside the push/pop to the snowman and ground
 	glPushMatrix();
 
-	propellar();
+	drawDrone();
 
 	//draw the ground
 	basicGround();
@@ -340,9 +343,6 @@ void keyPressed(unsigned char key, int x, int y)
 			For example, refer to the existing keys used here (KEY_MOVE_FORWARD,
 			KEY_MOVE_LEFT, KEY_EXIT, etc).
 		*/
-	case KEY_RENDER_FILL:
-		renderFillEnabled = !renderFillEnabled;
-		break;
 	case KEY_EXIT:
 		exit(0);
 		break;
@@ -542,31 +542,41 @@ void init(void)
 */
 void think(void)
 {
+	GLfloat velocity = droneSpeed * FRAME_TIME_SEC;
 
-	thetaBowTie += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
-	thetaPropellar += 360 * FRAME_TIME_SEC;
+	thetaPropellar += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
+
+	// drone heading
+	//droneHeading = 
 
 	/*
 		Keyboard motion handler: complete this section to make your "player-controlled"
 		object respond to keyboard input.
 	*/
 	if (keyboardMotion.Yaw != MOTION_NONE) {
-		smHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		droneHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		yaw += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		cameraUpdate();
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
-		smPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[2] -= keyboardMotion.Surge * smSpeed * FRAME_TIME_SEC;
+		dronePosition[2] += front[2] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		dronePosition[0] += front[0] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		//cameraPosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		//cameraLookAt[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		//cameraPosition[2] -= front[2] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		//cameraLookAt[2] -= front[2] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		//cameraPosition[0] -= front[0] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		//cameraLookAt[0] -= front[0] * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
 	}
 	if (keyboardMotion.Sway != MOTION_NONE) {
-		smPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[0] += keyboardMotion.Sway * smSpeed * FRAME_TIME_SEC;
+		dronePosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
+		cameraLookAt[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
 	}
 	if (keyboardMotion.Heave != MOTION_NONE) {
-		smPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
-		cameraLookAt[1] += keyboardMotion.Heave * smSpeed * FRAME_TIME_SEC;
+		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
+		cameraLookAt[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
 	}
 }
 
@@ -606,7 +616,35 @@ void initLights(void)
 	glEnable(GL_COLOR_MATERIAL);
 }
 
+void cameraUpdate(void)
+{
+	front[0] = cos(droneHeading * DEG_TO_RAD);
+	//front[1] = 0; // for pitch
+	front[2] = sin(droneHeading * DEG_TO_RAD);
+
+	GLfloat magnitude = sqrt((front[0] * front[0]) + (front[1] * front[1]) + (front[2] * front[2]));
+
+	front[0] /= magnitude;
+	front[1] /= magnitude;
+	front[2] /= magnitude;
+
+	printf("Front: %d, %d, %d\n", (float) front[0], (float) front[1], (float) front[2]);
+
+	//front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	//front.y = sin(glm::radians(pitch));
+	//front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	//front = glm::normalize(front);
+
+	//right = glm::normalize(glm::cross(front, worldUp));
+	//up = glm::normalize(glm::cross(right, front));
+}
+
 /******************************************************************************/
+
+/*
+  A simple ground plane in the XZ plane with vertex normals specified for lighting
+  the top face of the ground. The bottom face is not lit.
+*/
 
 void basicGround(void)
 {
@@ -682,38 +720,154 @@ void drawOrigin(void)
 	glEnd();
 }
 
-void basicSphere(void)
+void drawDrone(void)
 {
-	gluQuadricDrawStyle(sphereQuadric, GLU_FILL);
-
+	glColor3f(1.0, 1.0, 1.0);
 	glPushMatrix();
 
-	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
-	glRotated(smHeading, 0, 1, 0); //first rotate
-	glScaled(1.0, 0.5, 1.0);
+	// moving the drone
+	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]);
+	glRotated(droneHeading, 0, 1, 0); //first rotate
 
-	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
+	// draw the body
+	drawBody();
 
-	glTranslated(0.0, BODY_RADIUS, 0.0);
+	glPushMatrix();
+	glRotated(45, 0, 1, 0);
+
+	// left side arm
+	glPushMatrix();
+	glTranslated(-(BODY_RADIUS * 1.5), 0, 0);
+	drawArm();
+	glPopMatrix();
+
+	// right side arm
+	glPushMatrix();
+	glTranslated(BODY_RADIUS * 1.5, 0, 0);
+	glRotated(180, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	// front arm
+	glPushMatrix();
+	glTranslated(0, 0, BODY_RADIUS * 1.5);
+	glRotated(90, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	// back arm
+	glPushMatrix();
+	glTranslated(0, 0, -(BODY_RADIUS * 1.5));
+	glRotated(-90, 0, 1, 0);
+	drawArm();
+	glPopMatrix();
+
+	glPopMatrix();
 
 
 	glPopMatrix();
 }
 
-void propellar(void)
+void drawBody(void)
 {
-	gluQuadricDrawStyle(cylinderQuadric, GLU_FILL);
-	
 	glPushMatrix();
-	
-	glTranslatef(smPosition[0], smPosition[1], smPosition[2]); //then translate
-	glTranslated(-0.5, 0.0, 0.0);
-	glRotated(thetaPropellar, 0, 1, 0); //first rotate
-	//glScaled(1.0, 0.5, 1.0); // Scale if needed
 
-	
-	gluCylinder(cylinderQuadric, 0.05, 0.05, 1.0, 50, 50);
+	glPushMatrix();
+	// squash the y axis
+	glScaled(BODY_RADIUS, BODY_Y_SCALE, BODY_RADIUS);
 
+	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
+
+	glTranslated(0.0, BODY_RADIUS, 0.0);
 	glPopMatrix();
 
+	glPushMatrix();
+	glTranslated(0, 0, -BODY_RADIUS * 1.1);
+	gluSphere(sphereQuadric, 0.3, 10, 10);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+void drawArm(void)
+{
+	glPushMatrix();
+
+	// bottom arm
+	//glTranslated(-(DRONE_ARM_LENGTH / 2.0), 0, 0);
+
+	glPushMatrix();
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH, 10, 10);
+	glPopMatrix();
+
+	// arm cap
+	glPushMatrix();
+	gluSphere(sphereQuadric, DRONE_ARM_WIDTH*1.5, 10, 10);
+	glPopMatrix();
+
+	// up-right arm cap
+
+	glPushMatrix();
+	glRotated(90, -1, 0, 0);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 2, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, DRONE_ARM_LENGTH / 2, 0);
+	drawPropeller();
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+void drawPropeller(void)
+{
+	glPushMatrix();
+
+	glRotated(thetaPropellar, 0, 1, 0);
+
+	// draw first propeller wing
+	glPushMatrix();
+	glTranslated(-(PROPELLER_LENGTH / 2.0), 0, 0);
+	glRotated(90, 0, 0, 1);
+	glRotated(90, 1, 0, 0);
+	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
+	glPopMatrix();
+
+	// draw second propeller wing
+	glPushMatrix();
+	glTranslated(0, 0, -(PROPELLER_LENGTH / 2.0));
+	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
+	glPopMatrix();
+
+	//draw the first propellar end caps
+	glPushMatrix();
+	glTranslated(-PROPELLER_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(PROPELLER_LENGTH / 2, 0.0, 0.0);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	// draw the second propellar end caps
+	glPushMatrix();
+	glTranslated(0.0, 0.0, -PROPELLER_LENGTH / 2);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0.0, 0.0, PROPELLER_LENGTH / 2);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
+	glPopMatrix();
+
+	//draw the propellar center
+	glPushMatrix();
+	gluSphere(sphereQuadric, PROPELLER_WIDTH*1.5, 6, 6);
+	glPopMatrix();
+
+	glPopMatrix();
 }

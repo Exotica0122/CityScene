@@ -1,5 +1,12 @@
 ﻿  CityScene.c
-e:\github\cityscene\cityscene\cityscene.c(543): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'double'
+e:\github\cityscene\cityscene\cityscene.c(561): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(562): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(564): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(565): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(568): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(569): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(571): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(572): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
   CityScene.vcxproj -> E:\Github\CityScene\Debug\CityScene.exe
   E:\Github\CityScene\CityScene\freeglut\bin\freeglut.dll
   1 File(s) copied

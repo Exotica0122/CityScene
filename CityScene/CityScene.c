@@ -137,7 +137,9 @@ void main(int argc, char **argv);
 void init(void);
 void think(void);
 void initLights(void);
+void initCameraPosition(void);
 
+void cameraUpdate(void);
 void drawDrone(void);
 void drawBody(void);
 void drawArm(void);
@@ -165,14 +167,18 @@ enum Side {
 GLint windowWidth = 1280;
 GLint windowHeight = 720;
 
+// Camera
+
 // current camera position
 GLfloat cameraPosition[] = { 0, 1, 15 };
-GLfloat cameraLookAt[] = { 0, 0, 0 };
+
+float cameraHeading = 0.0f;
+float cameraDistanceXY = 500.f;
+
 
 // pointer to quadric objects
 GLUquadricObj *sphereQuadric;
 GLUquadricObj *cylinderQuadric;
-GLUquadricObj *diskQuadric;
 
 //drone hierachical model setup values
 //dimensions of the body
@@ -249,7 +255,7 @@ void display(void)
 
 	//set up our camera - slightly up in the y so we can see the ground plane
 	gluLookAt(cameraPosition[0], cameraPosition[1], cameraPosition[2],
-		cameraLookAt[0], cameraLookAt[1], cameraLookAt[2],
+		dronePosition[0], dronePosition[1], dronePosition[2],
 		0, 1, 0);
 
 	drawOrigin();
@@ -515,6 +521,8 @@ void init(void)
 
 	initLights();
 
+	initCameraPosition();
+
 	//create the quadric for drawing the sphere
 	sphereQuadric = gluNewQuadric();
 
@@ -540,22 +548,32 @@ void think(void)
 	*/
 	if (keyboardMotion.Yaw != MOTION_NONE) {
 		droneHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
-		printf("Drone Heading: %d\n", droneHeading);
+		if (droneHeading >= 360)
+			droneHeading = 0;
+		else if (droneHeading <= 0)
+			droneHeading = 360;
+		printf("Drone Heading: %f\n", droneHeading);
+
+		cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - 0) * DEG_TO_RAD)) * 10;
+		cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - 0) * DEG_TO_RAD)) * 10;
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
-		dronePosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
-		cameraLookAt[2] -= keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC;
+		dronePosition[0] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[2] -= (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+
+		cameraPosition[0] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[2] -= (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
 	}
 	if (keyboardMotion.Sway != MOTION_NONE) {
-		dronePosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
-		cameraLookAt[0] += keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC;
+		dronePosition[0] += (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[2] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+
+		cameraPosition[0] += (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[2] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
 	}
 	if (keyboardMotion.Heave != MOTION_NONE) {
 		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
 		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
-		cameraLookAt[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
 	}
 }
 
@@ -593,6 +611,12 @@ void initLights(void)
 
 	// Enable use of simple GL colours as materials.
 	glEnable(GL_COLOR_MATERIAL);
+}
+
+void initCameraPosition(void)
+{
+	cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - 0) * DEG_TO_RAD)) * 10;
+	cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - 0) * DEG_TO_RAD)) * 10;
 }
 
 /******************************************************************************/
@@ -728,12 +752,19 @@ void drawBody(void)
 {
 	glPushMatrix();
 
+	glPushMatrix();
 	// squash the y axis
 	glScaled(BODY_RADIUS, BODY_Y_SCALE, BODY_RADIUS);
 
 	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
 
 	glTranslated(0.0, BODY_RADIUS, 0.0);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0, 0, -BODY_RADIUS * 1.1);
+	gluSphere(sphereQuadric, 0.3, 10, 10);
+	glPopMatrix();
 
 	glPopMatrix();
 }
