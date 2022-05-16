@@ -64,6 +64,7 @@ typedef struct {
 	int Surge;		// Move forward or back		[<0 = Backward,	0 = Stop, >0 = Forward]
 	int Sway;		// Move sideways (strafe)	[<0 = Left, 0 = Stop, >0 = Right]
 	int Heave;		// Move vertically			[<0 = Down, 0 = Stop, >0 = Up]
+	int Pitch;
 } motionstate4_t;
 
 /******************************************************************************
@@ -86,18 +87,21 @@ typedef struct {
 	keystate_t MoveDown;
 	keystate_t TurnLeft;
 	keystate_t TurnRight;
+	keystate_t TurnUp;
+	keystate_t TurnDown;
 } motionkeys_t;
 
 // Current state of all keys used to control our "player-controlled" object's motion.
 motionkeys_t motionKeyStates = {
 	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
-	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP };
+	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
+	KEYSTATE_UP , KEYSTATE_UP };
 
 // How our "player-controlled" object should currently be moving, solely based on keyboard input.
 //
 // Note: this may not represent the actual motion of our object, which could be subject to
 // other controls (e.g. mouse input) or other simulated forces (e.g. gravity).
-motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE };
+motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE };
 
 // Define all character keys used for input (add any new key definitions here).
 // Note: USE ONLY LOWERCASE CHARACTERS HERE. The keyboard handler provided converts all
@@ -108,13 +112,19 @@ motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_
 #define KEY_MOVE_LEFT		'a'
 #define KEY_MOVE_RIGHT		'd'
 #define KEY_EXIT			27 // Escape key.
+#define KEY_MOVE_UP ' '
+//#define KEY_TURN_UP		' '
 
 // Define all GLUT special keys used for input (add any new key definitions here).
 
-#define SP_KEY_MOVE_UP		GLUT_KEY_UP
-#define SP_KEY_MOVE_DOWN	GLUT_KEY_DOWN
+//#define SP_KEY_MOVE_UP		GLUT_KEY_UP
+//#define SP_KEY_MOVE_DOWN	GLUT_KEY_DOWN
+#define SP_KEY_MOVE_DOWN	GLUT_KEY_SHIFT_L
 #define SP_KEY_TURN_LEFT	GLUT_KEY_LEFT
 #define SP_KEY_TURN_RIGHT	GLUT_KEY_RIGHT
+//#define SP_KEY_TURN_DOWN	GLUT_KEY_SHIFT_L
+#define SP_KEY_TURN_UP		GLUT_KEY_UP
+#define SP_KEY_TURN_DOWN	GLUT_KEY_DOWN
 
 
 /******************************************************************************
@@ -139,7 +149,6 @@ void think(void);
 void initLights(void);
 void initCameraPosition(void);
 
-void cameraUpdate(void);
 void drawDrone(void);
 void drawBody(void);
 void drawArm(void);
@@ -157,10 +166,12 @@ void basicGround(void);
 // Render objects as filled polygons (1) or wireframes (0). Default filled.
 int renderFillEnabled = 1;
 
-//is the object to be drawn on the left (-x) or right (-y)
+// drawing propeller: sides for drawArm
 enum Side {
-	leftSide = -1,
-	rightSide = 1,
+	frontLeftSide = -2,
+	frontRightSide = -1,
+	rearLeftSide = 1,
+	rearRightSide = 2,
 };
 
 // window dimensions
@@ -168,8 +179,6 @@ GLint windowWidth = 1280;
 GLint windowHeight = 720;
 
 // Camera
-
-// current camera position
 GLfloat cameraPosition[] = { 0, 1, 15 };
 
 float cameraAngle = 0.0f;
@@ -186,6 +195,12 @@ GLUquadricObj *cylinderQuadric;
 #define BODY_RADIUS 1.25
 #define BODY_Y_SCALE 0.5
 
+GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
+const float droneSpeed = 2.0f; // Metres per second
+
+float droneYawHeading = 0.0; // degrees in facing direction
+float dronePitchHeading = 0.0f; // degrees in facing direction
+
 // arm dimensions
 #define DRONE_ARM_LENGTH 1.5
 #define DRONE_ARM_WIDTH 0.1
@@ -193,10 +208,6 @@ GLUquadricObj *cylinderQuadric;
 // propellar dimensions
 #define PROPELLER_LENGTH 1.5
 #define PROPELLER_WIDTH 0.1
-
-GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
-const float droneSpeed = 2.0f; // Metres per second
-float droneHeading = 0.0; //which way is our snow man facing - here 0 is facing forwards looking at you
 
 float thetaPropellar = 0.0f;
 
@@ -211,7 +222,7 @@ void main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(windowWidth, windowHeight);
-	glutCreateWindow("Drone Animation");
+	glutCreateWindow("City Scene");
 
 	// Set up the scene.
 	init();
@@ -331,6 +342,10 @@ void keyPressed(unsigned char key, int x, int y)
 		motionKeyStates.MoveRight = KEYSTATE_DOWN;
 		keyboardMotion.Sway = MOTION_RIGHT;
 		break;
+	case KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_DOWN;
+		keyboardMotion.Heave = MOTION_UP;
+		break;
 
 		/*
 			Other Keyboard Functions (add any new character key controls here)
@@ -358,10 +373,6 @@ void specialKeyPressed(int key, int x, int y)
 
 			This works as per the motion keys in keyPressed.
 		*/
-	case SP_KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_DOWN;
-		keyboardMotion.Heave = MOTION_UP;
-		break;
 	case SP_KEY_MOVE_DOWN:
 		motionKeyStates.MoveDown = KEYSTATE_DOWN;
 		keyboardMotion.Heave = MOTION_DOWN;
@@ -373,6 +384,14 @@ void specialKeyPressed(int key, int x, int y)
 	case SP_KEY_TURN_RIGHT:
 		motionKeyStates.TurnRight = KEYSTATE_DOWN;
 		keyboardMotion.Yaw = MOTION_CLOCKWISE;
+		break;
+	case SP_KEY_TURN_UP:
+		motionKeyStates.TurnUp = KEYSTATE_DOWN;
+		keyboardMotion.Pitch = MOTION_CLOCKWISE;
+		break;
+	case SP_KEY_TURN_DOWN:
+		motionKeyStates.TurnDown = KEYSTATE_DOWN;
+		keyboardMotion.Pitch = MOTION_ANTICLOCKWISE;
 		break;
 
 		/*
@@ -422,6 +441,11 @@ void keyReleased(unsigned char key, int x, int y)
 		motionKeyStates.MoveRight = KEYSTATE_UP;
 		keyboardMotion.Sway = (motionKeyStates.MoveLeft == KEYSTATE_DOWN) ? MOTION_LEFT : MOTION_NONE;
 		break;
+	case KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_UP;
+		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
+		break;
+	
 
 		/*
 			Other Keyboard Functions (add any new character key controls here)
@@ -447,10 +471,6 @@ void specialKeyReleased(int key, int x, int y)
 
 			This works as per the motion keys in keyReleased.
 		*/
-	case SP_KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_UP;
-		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
-		break;
 	case SP_KEY_MOVE_DOWN:
 		motionKeyStates.MoveDown = KEYSTATE_UP;
 		keyboardMotion.Heave = (motionKeyStates.MoveUp == KEYSTATE_DOWN) ? MOTION_UP : MOTION_NONE;
@@ -462,6 +482,14 @@ void specialKeyReleased(int key, int x, int y)
 	case SP_KEY_TURN_RIGHT:
 		motionKeyStates.TurnRight = KEYSTATE_UP;
 		keyboardMotion.Yaw = (motionKeyStates.TurnLeft == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
+		break;
+	case SP_KEY_TURN_UP:
+		motionKeyStates.TurnUp = KEYSTATE_UP;
+		keyboardMotion.Pitch = (motionKeyStates.TurnUp == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+		break;
+	case SP_KEY_TURN_DOWN:
+		motionKeyStates.TurnDown = KEYSTATE_UP;
+		keyboardMotion.Pitch = (motionKeyStates.TurnDown == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
 		break;
 
 		/*
@@ -547,30 +575,42 @@ void think(void)
 		Keyboard motion handler: complete this section to make your "player-controlled"
 		object respond to keyboard input.
 	*/
-	if (keyboardMotion.Yaw != MOTION_NONE) {
-		droneHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
-		if (droneHeading >= 360)
-			droneHeading = 0;
-		else if (droneHeading <= 0)
-			droneHeading = 360;
-		printf("Drone Heading: %f\n", droneHeading);
+	if (keyboardMotion.Pitch != MOTION_NONE)
+	{
+		dronePitchHeading += keyboardMotion.Pitch * 360.0f * FRAME_TIME_SEC; //60 RPM
+		if (dronePitchHeading >= 360)
+			dronePitchHeading = 0;
+		else if (dronePitchHeading <= 0)
+			dronePitchHeading = 360;
+		printf("Drone Pitch Heading: %f\n", dronePitchHeading);
 
-		cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-		cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+		//dronePosition
+
+	}
+	if (keyboardMotion.Yaw != MOTION_NONE) {
+		droneYawHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
+		if (droneYawHeading >= 360)
+			droneYawHeading = 0;
+		else if (droneYawHeading <= 0)
+			droneYawHeading = 360;
+		printf("Drone Yaw Heading: %f\n", droneYawHeading);
+
+		cameraPosition[0] = dronePosition[0] + ((float)sin((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+		cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 	}
 	if (keyboardMotion.Surge != MOTION_NONE) {
-		dronePosition[0] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-		dronePosition[2] -= (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
 
-		cameraPosition[0] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
-		cameraPosition[2] -= (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
 	}
 	if (keyboardMotion.Sway != MOTION_NONE) {
-		dronePosition[0] += (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-		dronePosition[2] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
+		dronePosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
 
-		cameraPosition[0] += (cos(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
-		cameraPosition[2] -= (sin(droneHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
+		cameraPosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
 	}
 	if (keyboardMotion.Heave != MOTION_NONE) {
 		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
@@ -616,9 +656,9 @@ void initLights(void)
 
 void initCameraPosition(void)
 {
-	cameraPosition[0] = dronePosition[0] + ((float)sin((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-	cameraPosition[1] = 2;
-	cameraPosition[2] = dronePosition[2] + ((float)cos((droneHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+	cameraPosition[0] = dronePosition[0] + ((float)sin((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
+	cameraPosition[1] = 2.5;
+	cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 }
 
 /******************************************************************************/
@@ -709,7 +749,8 @@ void drawDrone(void)
 
 	// moving the drone
 	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]);
-	glRotated(droneHeading, 0, 1, 0); //first rotate
+	glRotated(droneYawHeading, 0, 1, 0); // yaw rotate
+	glRotated(dronePitchHeading, 1, 0, 0); // pitch rotate
 
 	// draw the body
 	drawBody();
