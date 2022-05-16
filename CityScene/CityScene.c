@@ -155,6 +155,7 @@ void initDroneCenterPosition(void);
 void drawDrone(void);
 void drawBody(void);
 void drawArm(int direction);
+void drawLeg(void);
 void drawPropeller(void);
 void drawOrigin(void);
 void basicGround(void);
@@ -188,6 +189,8 @@ float cameraAngle = 0.0f;
 float cameraHeading = 0.0f;
 float cameraDistanceXY = 10.f;
 
+//#define 
+
 
 // pointer to quadric objects
 GLUquadricObj *sphereQuadric;
@@ -199,7 +202,7 @@ GLUquadricObj *cylinderQuadric;
 #define BODY_Y_SCALE 0.5
 
 GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
-const float droneSpeed = 2.0f; // Metres per second
+const float droneSpeed = 8.0f; // Metres per second
 
 float droneYawHeading = 0.0; // degrees in facing direction
 float dronePitchHeading = 0.0f; // degrees in facing direction
@@ -219,6 +222,7 @@ float thetaPropellar = 0.0f;
 // ground
 #define GROUND_WIDTH 250
 #define GROUND_LENGTH 250
+#define GROUND_GRID 10
 
 
 /******************************************************************************
@@ -311,7 +315,7 @@ void reshape(int width, int h)
 
 	glLoadIdentity();
 
-	gluPerspective(60, (float)windowWidth / (float)windowHeight, 1, 20);
+	gluPerspective(60, (float)windowWidth / (float)windowHeight, 1, 100);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -720,15 +724,14 @@ void basicGround(void)
 		for(int j = 0; j < GROUND_LENGTH; j+= 10)
 		{
 			glBegin(GL_QUADS);
-			//back right corner
 			glNormal3d(0, 1, 0);
 			glVertex3d(i, 0, j);
 			glNormal3d(0, 1, 0);
-			glVertex3d(i+10, 0, j);
+			glVertex3d(i + GROUND_GRID, 0, j);
 			glNormal3d(0, 1, 0);
-			glVertex3d(i+10, 0, j+10);
+			glVertex3d(i + GROUND_GRID, 0, j + GROUND_GRID);
 			glNormal3d(0, 1, 0);
-			glVertex3d(i, 0, j+10);
+			glVertex3d(i, 0, j + GROUND_GRID);
 			glEnd();
 		}
 	}
@@ -780,6 +783,8 @@ void drawDrone(void)
 	// draw the body
 	drawBody();
 
+	//drawLeg();
+
 	glPushMatrix();
 	glRotated(45, 0, 1, 0);
 
@@ -811,7 +816,6 @@ void drawDrone(void)
 	glPopMatrix();
 
 	glPopMatrix();
-
 
 	glPopMatrix();
 }
@@ -847,26 +851,39 @@ void drawArm(int direction)
 	glPushMatrix();
 	glRotated(90, 0, 0, 1);
 	glRotated(90, 1, 0, 0);
-	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH, 10, 10);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH * 1.5, DRONE_ARM_LENGTH, 10, 10);
 	glPopMatrix();
 
 	// arm cap
 	glPushMatrix();
-	gluSphere(sphereQuadric, DRONE_ARM_WIDTH*1.5, 10, 10);
+	gluSphere(sphereQuadric, DRONE_ARM_WIDTH * 1.5, 10, 10);
 	glPopMatrix();
 
-	// up-right arm cap
+	// up-right arm
 
 	glPushMatrix();
 	glRotated(90, -1, 0, 0);
-	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 2, 10, 10);
+	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 4, 10, 10);
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(0, DRONE_ARM_LENGTH / 2, 0);
+	glTranslated(0, DRONE_ARM_LENGTH / 4, 0);
 	drawPropeller();
 	glPopMatrix();
 
+	glPopMatrix();
+}
+
+void drawLeg(void)
+{
+	glPushMatrix();
+
+	glTranslated(BODY_RADIUS * 0.4, -BODY_Y_SCALE * 0.75, BODY_RADIUS * 0.4);
+	glRotated(90, 1, 0, 0);
+	//gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 4, 10, 10);
+	glPushMatrix();
+	gluSphere(sphereQuadric, DRONE_ARM_WIDTH, 10, 10);
+	glPopMatrix();
 	glPopMatrix();
 }
 
@@ -892,7 +909,7 @@ void drawPropeller(void)
 
 	//draw the first propellar end caps
 	glPushMatrix();
-	glTranslated(-PROPELLER_LENGTH / 2, 0.0, 0.0);
+	glTranslated(-(PROPELLER_LENGTH / 2), 0.0, 0.0);
 	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
 	glPopMatrix();
 
@@ -903,7 +920,7 @@ void drawPropeller(void)
 
 	// draw the second propellar end caps
 	glPushMatrix();
-	glTranslated(0.0, 0.0, -PROPELLER_LENGTH / 2);
+	glTranslated(0.0, 0.0, -(PROPELLER_LENGTH / 2));
 	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
 	glPopMatrix();
 
@@ -914,7 +931,7 @@ void drawPropeller(void)
 
 	//draw the propellar center
 	glPushMatrix();
-	gluSphere(sphereQuadric, PROPELLER_WIDTH*1.5, 6, 6);
+	gluSphere(sphereQuadric, PROPELLER_WIDTH * 1.5, 6, 6);
 	glPopMatrix();
 
 	glPopMatrix();
