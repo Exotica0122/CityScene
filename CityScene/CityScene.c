@@ -65,6 +65,7 @@ typedef struct {
 	int Sway;		// Move sideways (strafe)	[<0 = Left, 0 = Stop, >0 = Right]
 	int Heave;		// Move vertically			[<0 = Down, 0 = Stop, >0 = Up]
 	int Pitch;
+	int Roll;
 } motionstate4_t;
 
 /******************************************************************************
@@ -89,13 +90,15 @@ typedef struct {
 	keystate_t TurnRight;
 	keystate_t TurnUp;
 	keystate_t TurnDown;
+	keystate_t TurnClockwise;
+	keystate_t TurnAnticlockwise;
 } motionkeys_t;
 
 // Current state of all keys used to control our "player-controlled" object's motion.
 motionkeys_t motionKeyStates = {
 	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
 	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
-	KEYSTATE_UP , KEYSTATE_UP };
+	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP };
 
 // How our "player-controlled" object should currently be moving, solely based on keyboard input.
 //
@@ -113,16 +116,15 @@ motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_
 #define KEY_MOVE_RIGHT		'd'
 #define KEY_EXIT			27 // Escape key.
 #define KEY_MOVE_UP ' '
-//#define KEY_TURN_UP		' '
+#define KEY_TURN_CLOCKWISE 'e'
+#define KEY_TURN_ANTICLOCKWISE 'q'
+
 
 // Define all GLUT special keys used for input (add any new key definitions here).
 
-//#define SP_KEY_MOVE_UP		GLUT_KEY_UP
-//#define SP_KEY_MOVE_DOWN	GLUT_KEY_DOWN
 #define SP_KEY_MOVE_DOWN	GLUT_KEY_SHIFT_L
 #define SP_KEY_TURN_LEFT	GLUT_KEY_LEFT
 #define SP_KEY_TURN_RIGHT	GLUT_KEY_RIGHT
-//#define SP_KEY_TURN_DOWN	GLUT_KEY_SHIFT_L
 #define SP_KEY_TURN_UP		GLUT_KEY_UP
 #define SP_KEY_TURN_DOWN	GLUT_KEY_DOWN
 
@@ -200,6 +202,7 @@ const float droneSpeed = 2.0f; // Metres per second
 
 float droneYawHeading = 0.0; // degrees in facing direction
 float dronePitchHeading = 0.0f; // degrees in facing direction
+float droneRollHeading = 0.0f; // degrees in facing direction
 
 // arm dimensions
 #define DRONE_ARM_LENGTH 1.5
@@ -346,6 +349,14 @@ void keyPressed(unsigned char key, int x, int y)
 		motionKeyStates.MoveUp = KEYSTATE_DOWN;
 		keyboardMotion.Heave = MOTION_UP;
 		break;
+	case KEY_TURN_CLOCKWISE:
+		motionKeyStates.TurnClockwise = KEYSTATE_DOWN;
+		keyboardMotion.Roll = MOTION_CLOCKWISE;
+		break;
+	case KEY_TURN_ANTICLOCKWISE:
+		motionKeyStates.TurnAnticlockwise = KEYSTATE_DOWN;
+		keyboardMotion.Roll = MOTION_ANTICLOCKWISE;
+		break;
 
 		/*
 			Other Keyboard Functions (add any new character key controls here)
@@ -444,6 +455,14 @@ void keyReleased(unsigned char key, int x, int y)
 	case KEY_MOVE_UP:
 		motionKeyStates.MoveUp = KEYSTATE_UP;
 		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
+		break;
+	case KEY_TURN_CLOCKWISE:
+		motionKeyStates.TurnClockwise = KEYSTATE_UP;
+		keyboardMotion.Roll = (motionKeyStates.TurnClockwise == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+		break;
+	case KEY_TURN_ANTICLOCKWISE:
+		motionKeyStates.TurnAnticlockwise = KEYSTATE_UP;
+		keyboardMotion.Roll = (motionKeyStates.TurnAnticlockwise == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
 		break;
 	
 
@@ -575,6 +594,15 @@ void think(void)
 		Keyboard motion handler: complete this section to make your "player-controlled"
 		object respond to keyboard input.
 	*/
+	if (keyboardMotion.Roll != MOTION_NONE)
+	{
+		droneRollHeading += keyboardMotion.Roll * 360.0f * FRAME_TIME_SEC; //60 RPM
+		if (droneRollHeading >= 360)
+			droneRollHeading = 0;
+		else if (droneRollHeading <= 0)
+			droneRollHeading = 360;
+		printf("Drone Roll Heading: %f\n", droneRollHeading);
+	}
 	if (keyboardMotion.Pitch != MOTION_NONE)
 	{
 		dronePitchHeading += keyboardMotion.Pitch * 360.0f * FRAME_TIME_SEC; //60 RPM
@@ -583,9 +611,6 @@ void think(void)
 		else if (dronePitchHeading <= 0)
 			dronePitchHeading = 360;
 		printf("Drone Pitch Heading: %f\n", dronePitchHeading);
-
-		//dronePosition
-
 	}
 	if (keyboardMotion.Yaw != MOTION_NONE) {
 		droneYawHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
@@ -751,6 +776,7 @@ void drawDrone(void)
 	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]);
 	glRotated(droneYawHeading, 0, 1, 0); // yaw rotate
 	glRotated(dronePitchHeading, 1, 0, 0); // pitch rotate
+	glRotated(droneRollHeading, 0, 0, 1); // roll rotate
 
 	// draw the body
 	drawBody();
