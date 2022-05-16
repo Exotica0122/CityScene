@@ -215,6 +215,10 @@ float droneRollHeading = 0.0f; // degrees in facing direction
 
 float thetaPropellar = 0.0f;
 
+// ground
+#define GROUND_WIDTH 250
+#define GROUND_LENGTH 250
+
 
 /******************************************************************************
  * Entry Point (don't put anything except the main function here)
@@ -701,45 +705,64 @@ void basicGround(void)
 	glPushMatrix();
 	glTranslated(0, -BODY_RADIUS / 2, 0); //shifted this so looks like in snow
 
-	glBegin(GL_QUADS);
-	//back right corner
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(10, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(10, 0, -10);
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, -10);
-	//front right corner
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(10, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(10, 0, 10);
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 10);
-	//front left corner
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(-10, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(-10, 0, 10);
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 10);
-	//back left corner
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(-10, 0, 0);
-	glNormal3d(0, 1, 0);
-	glVertex3d(-10, 0, -10);
-	glNormal3d(0, 1, 0);
-	glVertex3d(0, 0, -10);
+	for (int i = 0; i < GROUND_WIDTH; i+=10)
+	{
+		for(int j = 0; j < GROUND_LENGTH; j+= 10)
+		{
+			glBegin(GL_QUADS);
+			//back right corner
+			glNormal3d(0, 1, 0);
+			glVertex3d(0, 0, 0);
+			glNormal3d(0, 1, 0);
+			glVertex3d(10, 0, 0);
+			glNormal3d(0, 1, 0);
+			glVertex3d(10, 0, -10);
+			glNormal3d(0, 1, 0);
+			glVertex3d(0, 0, -10);
+			glEnd();
+		}
+	}
+	
 
-	glEnd();
+	//glBegin(GL_QUADS);
+	////back right corner
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(10, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(10, 0, -10);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, -10);
+	////front right corner
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(10, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(10, 0, 10);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 10);
+	////front left corner
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(-10, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(-10, 0, 10);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 10);
+	////back left corner
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(-10, 0, 0);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(-10, 0, -10);
+	//glNormal3d(0, 1, 0);
+	//glVertex3d(0, 0, -10);
+
+	//glEnd();
 
 	glPopMatrix();
 }
@@ -831,10 +854,10 @@ void drawBody(void)
 	glTranslated(0.0, BODY_RADIUS, 0.0);
 	glPopMatrix();
 
-	glPushMatrix();
-	glTranslated(0, 0, -BODY_RADIUS * 1.1);
-	gluSphere(sphereQuadric, 0.3, 10, 10);
-	glPopMatrix();
+	//glPushMatrix();
+	//glTranslated(0, 0, -BODY_RADIUS * 1.1);
+	//gluSphere(sphereQuadric, 0.3, 10, 10);
+	//glPopMatrix();
 
 	glPopMatrix();
 }
