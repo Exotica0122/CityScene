@@ -153,7 +153,7 @@ void initCameraPosition(void);
 
 void drawDrone(void);
 void drawBody(void);
-void drawArm(void);
+void drawArm(int direction);
 void drawPropeller(void);
 void drawOrigin(void);
 void basicGround(void);
@@ -194,7 +194,7 @@ GLUquadricObj *cylinderQuadric;
 
 //drone hierachical model setup values
 //dimensions of the body
-#define BODY_RADIUS 1.25
+#define BODY_RADIUS 1.0
 #define BODY_Y_SCALE 0.5
 
 GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
@@ -205,12 +205,13 @@ float dronePitchHeading = 0.0f; // degrees in facing direction
 float droneRollHeading = 0.0f; // degrees in facing direction
 
 // arm dimensions
-#define DRONE_ARM_LENGTH 1.5
-#define DRONE_ARM_WIDTH 0.1
+#define DRONE_ARM_LENGTH 1.1
+#define DRONE_UPRIGHT_LEGTH 1.0
+#define DRONE_ARM_WIDTH 0.06
 
 // propellar dimensions
-#define PROPELLER_LENGTH 1.5
-#define PROPELLER_WIDTH 0.1
+#define PROPELLER_LENGTH 1.1
+#define PROPELLER_WIDTH 0.06
 
 float thetaPropellar = 0.0f;
 
@@ -787,28 +788,28 @@ void drawDrone(void)
 	// left side arm
 	glPushMatrix();
 	glTranslated(-(BODY_RADIUS * 1.5), 0, 0);
-	drawArm();
+	drawArm(1);
 	glPopMatrix();
 
 	// right side arm
 	glPushMatrix();
 	glTranslated(BODY_RADIUS * 1.5, 0, 0);
 	glRotated(180, 0, 1, 0);
-	drawArm();
+	drawArm(1);
 	glPopMatrix();
 
 	// front arm
 	glPushMatrix();
 	glTranslated(0, 0, BODY_RADIUS * 1.5);
 	glRotated(90, 0, 1, 0);
-	drawArm();
+	drawArm(-1);
 	glPopMatrix();
 
 	// back arm
 	glPushMatrix();
 	glTranslated(0, 0, -(BODY_RADIUS * 1.5));
 	glRotated(-90, 0, 1, 0);
-	drawArm();
+	drawArm(-1);
 	glPopMatrix();
 
 	glPopMatrix();
@@ -838,7 +839,7 @@ void drawBody(void)
 	glPopMatrix();
 }
 
-void drawArm(void)
+void drawArm(int direction)
 {
 	glPushMatrix();
 
