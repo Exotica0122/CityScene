@@ -150,6 +150,7 @@ void init(void);
 void think(void);
 void initLights(void);
 void initCameraPosition(void);
+void initDroneCenterPosition(void);
 
 void drawDrone(void);
 void drawBody(void);
@@ -574,6 +575,8 @@ void init(void)
 
 	initLights();
 
+	initDroneCenterPosition();
+
 	initCameraPosition();
 
 	//create the quadric for drawing the sphere
@@ -691,6 +694,13 @@ void initCameraPosition(void)
 	cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 }
 
+void initDroneCenterPosition(void)
+{
+	dronePosition[0] = GROUND_WIDTH / 2;
+	dronePosition[1] = 0.f;
+	dronePosition[2] = GROUND_LENGTH / 2;
+}
+
 /******************************************************************************/
 
 /*
@@ -712,63 +722,26 @@ void basicGround(void)
 			glBegin(GL_QUADS);
 			//back right corner
 			glNormal3d(0, 1, 0);
-			glVertex3d(0, 0, 0);
+			glVertex3d(i, 0, j);
 			glNormal3d(0, 1, 0);
-			glVertex3d(10, 0, 0);
+			glVertex3d(i+10, 0, j);
 			glNormal3d(0, 1, 0);
-			glVertex3d(10, 0, -10);
+			glVertex3d(i+10, 0, j+10);
 			glNormal3d(0, 1, 0);
-			glVertex3d(0, 0, -10);
+			glVertex3d(i, 0, j+10);
 			glEnd();
 		}
 	}
-	
-
-	//glBegin(GL_QUADS);
-	////back right corner
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(10, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(10, 0, -10);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, -10);
-	////front right corner
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(10, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(10, 0, 10);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 10);
-	////front left corner
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(-10, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(-10, 0, 10);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 10);
-	////back left corner
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(-10, 0, 0);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(-10, 0, -10);
-	//glNormal3d(0, 1, 0);
-	//glVertex3d(0, 0, -10);
-
-	//glEnd();
 
 	glPopMatrix();
 }
 
 void drawOrigin(void)
 {
+	glPushMatrix();
+
+	glTranslated(GROUND_WIDTH / 2, 0, GROUND_LENGTH / 2);
+
 	glColor3f(0.0f, 1.0f, 1.0f);
 	glutWireSphere(0.1, 10, 10);
 	glBegin(GL_LINES);
@@ -789,6 +762,8 @@ void drawOrigin(void)
 	glVertex3f(0.0f, 0.0f, 2.0f);
 
 	glEnd();
+
+	glPopMatrix();
 }
 
 void drawDrone(void)

@@ -1,12 +1,12 @@
 ﻿  CityScene.c
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(632): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(633): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(635): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(636): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(639): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(640): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(642): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ykx5915\documents\github\cityscene\cityscene\cityscene.c(643): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
-  CityScene.vcxproj -> C:\Users\ykx5915\Documents\GitHub\CityScene\Debug\CityScene.exe
-  C:\Users\ykx5915\Documents\GitHub\CityScene\CityScene\freeglut\bin\freeglut.dll
+e:\github\cityscene\cityscene\cityscene.c(635): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(636): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(638): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(639): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(642): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(643): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(645): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
+e:\github\cityscene\cityscene\cityscene.c(646): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+  CityScene.vcxproj -> E:\Github\CityScene\Debug\CityScene.exe
+  E:\Github\CityScene\CityScene\freeglut\bin\freeglut.dll
   1 File(s) copied
