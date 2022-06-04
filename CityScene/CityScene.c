@@ -14,17 +14,18 @@
  * Author: Peter An
  *
  ******************************************************************************/
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <Windows.h>
 #include <freeglut.h>
 #include <math.h>
 #include <stdio.h>
 
-/******************************************************************************
-* Animation & Timing Setup
-******************************************************************************/
+ /******************************************************************************
+ * Animation & Timing Setup
+ ******************************************************************************/
 
-// Target frame rate (number of Frames Per Second).
+ // Target frame rate (number of Frames Per Second).
 #define TARGET_FPS 60				
 
 // Ideal time each frame should be displayed for (in milliseconds).
@@ -72,7 +73,7 @@ typedef struct {
  * Keyboard Input Handling Setup
  ******************************************************************************/
 
-// Represents the state of a single keyboard key.Represents the state of a single keyboard key.
+ // Represents the state of a single keyboard key.Represents the state of a single keyboard key.
 typedef enum {
 	KEYSTATE_UP = 0,	// Key is not pressed.
 	KEYSTATE_DOWN		// Key is pressed down.
@@ -159,11 +160,12 @@ void drawLeg(void);
 void drawPropeller(void);
 void drawOrigin(void);
 void basicGround(void);
+int loadPPM(char* filename);
 
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
  ******************************************************************************/
-// Angle tools
+ // Angle tools
 #define PI 3.14159265359
 #define DEG_TO_RAD PI/180
 
@@ -189,15 +191,14 @@ float cameraAngle = 0.0f;
 float cameraHeading = 0.0f;
 float cameraDistanceXY = 10.f;
 
-//#define 
 
 
-// pointer to quadric objects
+// Pointer to quadric objects
 GLUquadricObj *sphereQuadric;
 GLUquadricObj *cylinderQuadric;
 
-//drone hierachical model setup values
-//dimensions of the body
+// Drone hierachical model setup values
+// Dimensions of the body
 #define BODY_RADIUS 1.0
 #define BODY_Y_SCALE 0.5
 
@@ -208,21 +209,27 @@ float droneYawHeading = 0.0; // degrees in facing direction
 float dronePitchHeading = 0.0f; // degrees in facing direction
 float droneRollHeading = 0.0f; // degrees in facing direction
 
-// arm dimensions
+// Arm dimensions
 #define DRONE_ARM_LENGTH 1.1
 #define DRONE_UPRIGHT_LEGTH 1.0
 #define DRONE_ARM_WIDTH 0.06
 
-// propellar dimensions
+// Propellar dimensions
 #define PROPELLER_LENGTH 1.1
 #define PROPELLER_WIDTH 0.06
 
 float thetaPropellar = 0.0f;
 
-// ground
+// Ground
 #define GROUND_WIDTH 250
 #define GROUND_LENGTH 250
 #define GROUND_GRID 10
+
+// Textures
+GLuint icyTexture;
+GLuint skyTexture;
+GLuint asphaltTexture;
+GLuint roadTexture;
 
 
 /******************************************************************************
@@ -474,7 +481,7 @@ void keyReleased(unsigned char key, int x, int y)
 		motionKeyStates.TurnAnticlockwise = KEYSTATE_UP;
 		keyboardMotion.Roll = (motionKeyStates.TurnAnticlockwise == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
 		break;
-	
+
 
 		/*
 			Other Keyboard Functions (add any new character key controls here)
@@ -588,6 +595,11 @@ void init(void)
 
 	//create the quadric for drawing the cylinder
 	cylinderQuadric = gluNewQuadric();
+
+	icyTexture = loadPPM("icy.ppm");
+	skyTexture = loadPPM("sky.ppm");
+	asphaltTexture = loadPPM("asphalt.ppm");
+	roadTexture = loadPPM("road.ppm");
 }
 
 /*
@@ -606,6 +618,7 @@ void think(void)
 		Keyboard motion handler: complete this section to make your "player-controlled"
 		object respond to keyboard input.
 	*/
+
 	if (keyboardMotion.Roll != MOTION_NONE)
 	{
 		droneRollHeading += keyboardMotion.Roll * 360.0f * FRAME_TIME_SEC; //60 RPM
@@ -615,6 +628,7 @@ void think(void)
 			droneRollHeading = 360;
 		printf("Drone Roll Heading: %f\n", droneRollHeading);
 	}
+
 	if (keyboardMotion.Pitch != MOTION_NONE)
 	{
 		dronePitchHeading += keyboardMotion.Pitch * 360.0f * FRAME_TIME_SEC; //60 RPM
@@ -624,6 +638,7 @@ void think(void)
 			dronePitchHeading = 360;
 		printf("Drone Pitch Heading: %f\n", dronePitchHeading);
 	}
+
 	if (keyboardMotion.Yaw != MOTION_NONE) {
 		droneYawHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
 		if (droneYawHeading >= 360)
@@ -635,6 +650,8 @@ void think(void)
 		cameraPosition[0] = dronePosition[0] + ((float)sin((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 		cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
 	}
+
+	// Move Forward backward
 	if (keyboardMotion.Surge != MOTION_NONE) {
 		dronePosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
 		dronePosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
@@ -642,6 +659,8 @@ void think(void)
 		cameraPosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
 		cameraPosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
 	}
+
+	// Move left right
 	if (keyboardMotion.Sway != MOTION_NONE) {
 		dronePosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
 		dronePosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
@@ -649,7 +668,17 @@ void think(void)
 		cameraPosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
 		cameraPosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
 	}
-	if (keyboardMotion.Heave != MOTION_NONE) {
+
+	// Move down until ground
+	if (keyboardMotion.Heave == MOTION_DOWN && dronePosition[1] >= -0.f)
+	{
+		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
+		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
+	}
+
+	// Move up
+	if (keyboardMotion.Heave == MOTION_UP)
+	{
 		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
 		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
 	}
@@ -716,27 +745,41 @@ void basicGround(void)
 {
 	glColor3d(0.8, 0.9, 1);
 
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, asphaltTexture);
+
 	glPushMatrix();
 	glTranslated(0, -BODY_RADIUS / 2, 0); //shifted this so looks like in snow
 
-	for (int i = 0; i < GROUND_WIDTH; i+=10)
+	for (int i = 0; i < GROUND_WIDTH; i += 10)
 	{
-		for(int j = 0; j < GROUND_LENGTH; j+= 10)
+		for (int j = 0; j < GROUND_LENGTH; j += 10)
 		{
 			glBegin(GL_QUADS);
+
 			glNormal3d(0, 1, 0);
+			glTexCoord2f(0, 0);
 			glVertex3d(i, 0, j);
+
 			glNormal3d(0, 1, 0);
+			glTexCoord2f(1, 0);
 			glVertex3d(i + GROUND_GRID, 0, j);
+
 			glNormal3d(0, 1, 0);
+			glTexCoord2f(1, 1);
 			glVertex3d(i + GROUND_GRID, 0, j + GROUND_GRID);
+
 			glNormal3d(0, 1, 0);
+			glTexCoord2f(0, 1);
 			glVertex3d(i, 0, j + GROUND_GRID);
+
 			glEnd();
 		}
 	}
 
 	glPopMatrix();
+
+	glDisable(GL_TEXTURE_2D);
 }
 
 void drawOrigin(void)
@@ -935,4 +978,136 @@ void drawPropeller(void)
 	glPopMatrix();
 
 	glPopMatrix();
+}
+
+// Load a binary ppm file into an OpenGL texture and return the OpenGL texture reference ID
+int loadPPM(char* filename)
+{
+	FILE *inFile; //File pointer
+	int width, height, maxVal; //image metadata from PPM file format
+	int totalPixels; // total number of pixels in the image
+
+					 // temporary character
+	char tempChar;
+	// counter variable for the current pixel in the image
+	int i;
+
+	char header[100]; //input buffer for reading in the file header information
+
+	// if the original values are larger than 255
+	float RGBScaling;
+
+	// temporary variables for reading in the red, green and blue data of each pixel
+	int red, green, blue;
+
+	GLubyte *texture; //the texture buffer pointer
+
+	//create one texture with the next available index
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+
+	inFile = fopen(filename, "r");
+
+	// read in the first header line
+	//    - "%[^\n]"  matches a string of all characters not equal to the new line character ('\n')
+	//    - so we are just reading everything up to the first line break
+	fscanf(inFile, "%[^\n] ", header);
+
+	// make sure that the image begins with 'P3', which signifies a PPM file
+	if ((header[0] != 'P') || (header[1] != '3'))
+	{
+		printf("This is not a PPM file!\n");
+		exit(0);
+	}
+
+	// we have a PPM file
+	printf("This is a PPM file\n");
+
+	// read in the first character of the next line
+	fscanf(inFile, "%c", &tempChar);
+
+	// while we still have comment lines (which begin with #)
+	while (tempChar == '#')
+	{
+		// read in the comment
+		fscanf(inFile, "%[^\n] ", header);
+
+		// print the comment
+		printf("%s\n", header);
+
+		// read in the first character of the next line
+		fscanf(inFile, "%c", &tempChar);
+	}
+
+	// the last one was not a comment character '#', so we need to put it back into the file stream (undo)
+	ungetc(tempChar, inFile);
+
+	// read in the image hieght, width and the maximum value
+	fscanf(inFile, "%d %d %d", &width, &height, &maxVal);
+	// print out the information about the image file
+	printf("%d rows  %d columns  max value= %d\n", height, width, maxVal);
+
+	// compute the total number of pixels in the image
+	totalPixels = width * height;
+
+	// allocate enough memory for the image  (3*) because of the RGB data
+	texture = malloc(3 * sizeof(GLuint) * totalPixels);
+
+	// determine the scaling for RGB values
+	RGBScaling = (float)(255.0 / maxVal);
+
+	// if the maxValue is 255 then we do not need to scale the 
+	//    image data values to be in the range or 0 to 255
+	if (maxVal == 255)
+	{
+		for (i = 0; i < totalPixels; i++)
+		{
+			// read in the current pixel from the file
+			fscanf(inFile, "%d %d %d", &red, &green, &blue);
+
+			// store the red, green and blue data of the current pixel in the data array
+			texture[3 * totalPixels - 3 * i - 3] = (GLubyte)red;
+			texture[3 * totalPixels - 3 * i - 2] = (GLubyte)green;
+			texture[3 * totalPixels - 3 * i - 1] = (GLubyte)blue;
+		}
+	}
+	else  // need to scale up the data values
+	{
+		for (i = 0; i < totalPixels; i++)
+		{
+			// read in the current pixel from the file
+			fscanf(inFile, "%d %d %d", &red, &green, &blue);
+
+			// store the red, green and blue data of the current pixel in the data array
+			texture[3 * totalPixels - 3 * i - 3] = (GLubyte)(red * RGBScaling);
+			texture[3 * totalPixels - 3 * i - 2] = (GLubyte)(green * RGBScaling);
+			texture[3 * totalPixels - 3 * i - 1] = (GLubyte)(blue * RGBScaling);
+		}
+	}
+
+
+
+
+	fclose(inFile);
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+
+	//Set the texture parameters
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	//Define the texture
+	//glTexImage2D(GL_TEXTURE_2D, 0, 4, (GLuint)width, (GLuint)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+
+	//Create mipmaps
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, (GLuint)width, (GLuint)height, GL_RGB, GL_UNSIGNED_BYTE, texture);
+
+	//openGL guarantees to have the texture data stored so we no longer need it
+	free(texture);
+
+	//return the current texture id
+	return(textureID);
 }
