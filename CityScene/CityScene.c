@@ -14,12 +14,8 @@
  * Author: Peter An
  *
  ******************************************************************************/
-#define _CRT_SECURE_NO_WARNINGS
 
-#include <Windows.h>
-#include <freeglut.h>
-#include <math.h>
-#include <stdio.h>
+#include "CityScene.h"
 
  /******************************************************************************
  * Animation & Timing Setup
@@ -40,95 +36,7 @@ const float FRAME_TIME_SEC = (1000 / TARGET_FPS) / 1000.0f;
 // Time we started preparing the current frame (in milliseconds since GLUT was initialized).
 unsigned int frameStartTime = 0;
 
-/******************************************************************************
- * Some Simple Definitions of Motion
- ******************************************************************************/
-
-#define MOTION_NONE 0				// No motion.
-#define MOTION_CLOCKWISE -1			// Clockwise rotation.
-#define MOTION_ANTICLOCKWISE 1		// Anticlockwise rotation.
-#define MOTION_BACKWARD -1			// Backward motion.
-#define MOTION_FORWARD 1			// Forward motion.
-#define MOTION_LEFT -1				// Leftward motion.
-#define MOTION_RIGHT 1				// Rightward motion.
-#define MOTION_DOWN -1				// Downward motion.
-#define MOTION_UP 1					// Upward motion.
-
- // Represents the motion of an object on four axes (Yaw, Surge, Sway, and Heave).
- // 
- // You can use any numeric values, as specified in the comments for each axis. However,
- // the MOTION_ definitions offer an easy way to define a "unit" movement without using
- // magic numbers (e.g. instead of setting Surge = 1, you can set Surge = MOTION_FORWARD).
- //
-typedef struct {
-	int Yaw;		// Turn about the Z axis	[<0 = Clockwise, 0 = Stop, >0 = Anticlockwise]
-	int Surge;		// Move forward or back		[<0 = Backward,	0 = Stop, >0 = Forward]
-	int Sway;		// Move sideways (strafe)	[<0 = Left, 0 = Stop, >0 = Right]
-	int Heave;		// Move vertically			[<0 = Down, 0 = Stop, >0 = Up]
-	int Pitch;
-	int Roll;
-} motionstate4_t;
-
-/******************************************************************************
- * Keyboard Input Handling Setup
- ******************************************************************************/
-
- // Represents the state of a single keyboard key.Represents the state of a single keyboard key.
-typedef enum {
-	KEYSTATE_UP = 0,	// Key is not pressed.
-	KEYSTATE_DOWN		// Key is pressed down.
-} keystate_t;
-
-// Represents the states of a set of keys used to control an object's motion.
-typedef struct {
-	keystate_t MoveForward;
-	keystate_t MoveBackward;
-	keystate_t MoveLeft;
-	keystate_t MoveRight;
-	keystate_t MoveUp;
-	keystate_t MoveDown;
-	keystate_t TurnLeft;
-	keystate_t TurnRight;
-	keystate_t TurnUp;
-	keystate_t TurnDown;
-	keystate_t TurnClockwise;
-	keystate_t TurnAnticlockwise;
-} motionkeys_t;
-
-// Current state of all keys used to control our "player-controlled" object's motion.
-motionkeys_t motionKeyStates = {
-	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
-	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP,
-	KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP, KEYSTATE_UP };
-
-// How our "player-controlled" object should currently be moving, solely based on keyboard input.
-//
-// Note: this may not represent the actual motion of our object, which could be subject to
-// other controls (e.g. mouse input) or other simulated forces (e.g. gravity).
-motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_NONE };
-
-// Define all character keys used for input (add any new key definitions here).
-// Note: USE ONLY LOWERCASE CHARACTERS HERE. The keyboard handler provided converts all
-// characters typed by the user to lowercase, so the SHIFT key is ignored.
-
-#define KEY_MOVE_FORWARD	'w'
-#define KEY_MOVE_BACKWARD	's'
-#define KEY_MOVE_LEFT		'a'
-#define KEY_MOVE_RIGHT		'd'
-#define KEY_EXIT			27 // Escape key.
-#define KEY_MOVE_UP ' '
-#define KEY_TURN_CLOCKWISE 'e'
-#define KEY_TURN_ANTICLOCKWISE 'q'
-
-
-// Define all GLUT special keys used for input (add any new key definitions here).
-
-#define SP_KEY_MOVE_DOWN	GLUT_KEY_SHIFT_L
-#define SP_KEY_TURN_LEFT	GLUT_KEY_LEFT
-#define SP_KEY_TURN_RIGHT	GLUT_KEY_RIGHT
-#define SP_KEY_TURN_UP		GLUT_KEY_UP
-#define SP_KEY_TURN_DOWN	GLUT_KEY_DOWN
-
+int frameCount = 0;
 
 /******************************************************************************
  * GLUT Callback Prototypes
@@ -136,10 +44,6 @@ motionstate4_t keyboardMotion = { MOTION_NONE, MOTION_NONE, MOTION_NONE, MOTION_
 
 void display(void);
 void reshape(int width, int h);
-void keyPressed(unsigned char key, int x, int y);
-void specialKeyPressed(int key, int x, int y);
-void keyReleased(unsigned char key, int x, int y);
-void specialKeyReleased(int key, int x, int y);
 void idle(void);
 
 /******************************************************************************
@@ -151,86 +55,26 @@ void init(void);
 void think(void);
 void initLights(void);
 void initCameraPosition(void);
+void initSkyPosition(void);
 void initDroneCenterPosition(void);
 
-void drawDrone(void);
-void drawBody(void);
-void drawArm(int direction);
-void drawLeg(void);
-void drawPropeller(void);
 void drawOrigin(void);
-void basicGround(void);
-int loadPPM(char* filename);
 
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
  ******************************************************************************/
- // Angle tools
-#define PI 3.14159265359
-#define DEG_TO_RAD PI/180
 
-// Render objects as filled polygons (1) or wireframes (0). Default filled.
+ // Render objects as filled polygons (1) or wireframes (0). Default filled.
 int renderFillEnabled = 1;
-
-// drawing propeller: sides for drawArm
-enum Side {
-	frontLeftSide = -2,
-	frontRightSide = -1,
-	rearLeftSide = 1,
-	rearRightSide = 2,
-};
 
 // window dimensions
 GLint windowWidth = 1280;
 GLint windowHeight = 720;
 
-// Camera
-GLfloat cameraPosition[] = { 0, 1, 15 };
-
-float cameraAngle = 0.0f;
-float cameraHeading = 0.0f;
-float cameraDistanceXY = 10.f;
-
-
-
-// Pointer to quadric objects
-GLUquadricObj *sphereQuadric;
-GLUquadricObj *cylinderQuadric;
-
-// Drone hierachical model setup values
-// Dimensions of the body
-#define BODY_RADIUS 1.0
-#define BODY_Y_SCALE 0.5
-
-GLfloat dronePosition[3] = { 0.0f, 0.0f, 0.0f };
-const float droneSpeed = 8.0f; // Metres per second
-
-float droneYawHeading = 0.0; // degrees in facing direction
-float dronePitchHeading = 0.0f; // degrees in facing direction
-float droneRollHeading = 0.0f; // degrees in facing direction
-
-// Arm dimensions
-#define DRONE_ARM_LENGTH 1.1
-#define DRONE_UPRIGHT_LEGTH 1.0
-#define DRONE_ARM_WIDTH 0.06
-
-// Propellar dimensions
-#define PROPELLER_LENGTH 1.1
-#define PROPELLER_WIDTH 0.06
-
-float thetaPropellar = 0.0f;
-
-// Ground
-#define GROUND_WIDTH 250
-#define GROUND_LENGTH 250
-#define GROUND_GRID 10
-
-// Textures
-GLuint icyTexture;
-GLuint skyTexture;
-GLuint asphaltTexture;
-GLuint roadTexture;
-
+//spot light
+GLfloat spotlightPos[] = { 0.0f, 0.0f, 6.0f, 1.0f }; //remember fourth parameter is w (when w = 1.0 its a directional light)
+GLfloat spotDirection[] = { 0.0f, 0.0f, 0.0f };
+double angle = 0.0f;
 
 /******************************************************************************
  * Entry Point (don't put anything except the main function here)
@@ -238,6 +82,9 @@ GLuint roadTexture;
 
 void main(int argc, char **argv)
 {
+	// seed random
+	srand(time(0));
+
 	// Initialize the OpenGL window.
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -279,6 +126,10 @@ void main(int argc, char **argv)
  */
 void display(void)
 {
+	frameCount++;
+
+	glShadeModel(GL_SMOOTH);
+
 	// clear the screen and depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -292,7 +143,13 @@ void display(void)
 
 	drawOrigin();
 
-	glColor3f(1.0f, 1.0f, 1.0f);
+	drawSky();
+
+	//glPushMatrix();
+	//drawBuilding(0.7, 0.7, 0.7, 3);
+	//glPopMatrix();
+
+	drawCity();
 
 	//only apply the transforms inside the push/pop to the snowman and ground
 	glPushMatrix();
@@ -300,7 +157,7 @@ void display(void)
 	drawDrone();
 
 	//draw the ground
-	basicGround();
+	basicGround(GROUND_WIDTH, GROUND_LENGTH, GROUND_GRID);
 
 	glPopMatrix();
 
@@ -322,220 +179,10 @@ void reshape(int width, int h)
 
 	glLoadIdentity();
 
-	gluPerspective(60, (float)windowWidth / (float)windowHeight, 1, 100);
+	gluPerspective(60, (float)windowWidth / (float)windowHeight, 1, cameraZFar);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-}
-
-/*
-	Called each time a character key (e.g. a letter, number, or symbol) is pressed.
-*/
-void keyPressed(unsigned char key, int x, int y)
-{
-	switch (tolower(key)) {
-
-		/*
-			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
-
-			Whenever one of our movement keys is pressed, we do two things:
-			(1) Update motionKeyStates to record that the key is held down. We use
-				this later in the keyReleased callback.
-			(2) Update the relevant axis in keyboardMotion to set the new direction
-				we should be moving in. The most recent key always "wins" (e.g. if
-				you're holding down KEY_MOVE_LEFT then also pressed KEY_MOVE_RIGHT,
-				our object will immediately start moving right).
-		*/
-	case KEY_MOVE_FORWARD:
-		motionKeyStates.MoveForward = KEYSTATE_DOWN;
-		keyboardMotion.Surge = MOTION_FORWARD;
-		break;
-	case KEY_MOVE_BACKWARD:
-		motionKeyStates.MoveBackward = KEYSTATE_DOWN;
-		keyboardMotion.Surge = MOTION_BACKWARD;
-		break;
-	case KEY_MOVE_LEFT:
-		motionKeyStates.MoveLeft = KEYSTATE_DOWN;
-		keyboardMotion.Sway = MOTION_LEFT;
-		break;
-	case KEY_MOVE_RIGHT:
-		motionKeyStates.MoveRight = KEYSTATE_DOWN;
-		keyboardMotion.Sway = MOTION_RIGHT;
-		break;
-	case KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_DOWN;
-		keyboardMotion.Heave = MOTION_UP;
-		break;
-	case KEY_TURN_CLOCKWISE:
-		motionKeyStates.TurnClockwise = KEYSTATE_DOWN;
-		keyboardMotion.Roll = MOTION_CLOCKWISE;
-		break;
-	case KEY_TURN_ANTICLOCKWISE:
-		motionKeyStates.TurnAnticlockwise = KEYSTATE_DOWN;
-		keyboardMotion.Roll = MOTION_ANTICLOCKWISE;
-		break;
-
-		/*
-			Other Keyboard Functions (add any new character key controls here)
-
-			Rather than using literals (e.g. "t" for spotlight), create a new KEY_
-			definition in the "Keyboard Input Handling Setup" section of this file.
-			For example, refer to the existing keys used here (KEY_MOVE_FORWARD,
-			KEY_MOVE_LEFT, KEY_EXIT, etc).
-		*/
-	case KEY_EXIT:
-		exit(0);
-		break;
-	}
-}
-
-/*
-	Called each time a "special" key (e.g. an arrow key) is pressed.
-*/
-void specialKeyPressed(int key, int x, int y)
-{
-	switch (key) {
-
-		/*
-			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
-
-			This works as per the motion keys in keyPressed.
-		*/
-	case SP_KEY_MOVE_DOWN:
-		motionKeyStates.MoveDown = KEYSTATE_DOWN;
-		keyboardMotion.Heave = MOTION_DOWN;
-		break;
-	case SP_KEY_TURN_LEFT:
-		motionKeyStates.TurnLeft = KEYSTATE_DOWN;
-		keyboardMotion.Yaw = MOTION_ANTICLOCKWISE;
-		break;
-	case SP_KEY_TURN_RIGHT:
-		motionKeyStates.TurnRight = KEYSTATE_DOWN;
-		keyboardMotion.Yaw = MOTION_CLOCKWISE;
-		break;
-	case SP_KEY_TURN_UP:
-		motionKeyStates.TurnUp = KEYSTATE_DOWN;
-		keyboardMotion.Pitch = MOTION_CLOCKWISE;
-		break;
-	case SP_KEY_TURN_DOWN:
-		motionKeyStates.TurnDown = KEYSTATE_DOWN;
-		keyboardMotion.Pitch = MOTION_ANTICLOCKWISE;
-		break;
-
-		/*
-			Other Keyboard Functions (add any new special key controls here)
-
-			Rather than directly using the GLUT constants (e.g. GLUT_KEY_F1), create
-			a new SP_KEY_ definition in the "Keyboard Input Handling Setup" section of
-			this file. For example, refer to the existing keys used here (SP_KEY_MOVE_UP,
-			SP_KEY_TURN_LEFT, etc).
-		*/
-	}
-}
-
-/*
-	Called each time a character key (e.g. a letter, number, or symbol) is released.
-*/
-void keyReleased(unsigned char key, int x, int y)
-{
-	switch (tolower(key)) {
-
-		/*
-			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
-
-			Whenever one of our movement keys is released, we do two things:
-			(1) Update motionKeyStates to record that the key is no longer held down;
-				we need to know when we get to step (2) below.
-			(2) Update the relevant axis in keyboardMotion to set the new direction
-				we should be moving in. This gets a little complicated to ensure
-				the controls work smoothly. When the user releases a key that moves
-				in one direction (e.g. KEY_MOVE_RIGHT), we check if its "opposite"
-				key (e.g. KEY_MOVE_LEFT) is pressed down. If it is, we begin moving
-				in that direction instead. Otherwise, we just stop moving.
-		*/
-	case KEY_MOVE_FORWARD:
-		motionKeyStates.MoveForward = KEYSTATE_UP;
-		keyboardMotion.Surge = (motionKeyStates.MoveBackward == KEYSTATE_DOWN) ? MOTION_BACKWARD : MOTION_NONE;
-		break;
-	case KEY_MOVE_BACKWARD:
-		motionKeyStates.MoveBackward = KEYSTATE_UP;
-		keyboardMotion.Surge = (motionKeyStates.MoveForward == KEYSTATE_DOWN) ? MOTION_FORWARD : MOTION_NONE;
-		break;
-	case KEY_MOVE_LEFT:
-		motionKeyStates.MoveLeft = KEYSTATE_UP;
-		keyboardMotion.Sway = (motionKeyStates.MoveRight == KEYSTATE_DOWN) ? MOTION_RIGHT : MOTION_NONE;
-		break;
-	case KEY_MOVE_RIGHT:
-		motionKeyStates.MoveRight = KEYSTATE_UP;
-		keyboardMotion.Sway = (motionKeyStates.MoveLeft == KEYSTATE_DOWN) ? MOTION_LEFT : MOTION_NONE;
-		break;
-	case KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_UP;
-		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
-		break;
-	case KEY_TURN_CLOCKWISE:
-		motionKeyStates.TurnClockwise = KEYSTATE_UP;
-		keyboardMotion.Roll = (motionKeyStates.TurnClockwise == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
-		break;
-	case KEY_TURN_ANTICLOCKWISE:
-		motionKeyStates.TurnAnticlockwise = KEYSTATE_UP;
-		keyboardMotion.Roll = (motionKeyStates.TurnAnticlockwise == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
-		break;
-
-
-		/*
-			Other Keyboard Functions (add any new character key controls here)
-
-			Note: If you only care when your key is first pressed down, you don't have to
-			add anything here. You only need to put something in keyReleased if you care
-			what happens when the user lets go, like we do with our movement keys above.
-			For example: if you wanted a spotlight to come on while you held down "t", you
-			would need to set a flag to turn the spotlight on in keyPressed, and update the
-			flag to turn it off in keyReleased.
-		*/
-	}
-}
-
-/*
-	Called each time a "special" key (e.g. an arrow key) is released.
-*/
-void specialKeyReleased(int key, int x, int y)
-{
-	switch (key) {
-		/*
-			Keyboard-Controlled Motion Handler - DON'T CHANGE THIS SECTION
-
-			This works as per the motion keys in keyReleased.
-		*/
-	case SP_KEY_MOVE_DOWN:
-		motionKeyStates.MoveDown = KEYSTATE_UP;
-		keyboardMotion.Heave = (motionKeyStates.MoveUp == KEYSTATE_DOWN) ? MOTION_UP : MOTION_NONE;
-		break;
-	case SP_KEY_TURN_LEFT:
-		motionKeyStates.TurnLeft = KEYSTATE_UP;
-		keyboardMotion.Yaw = (motionKeyStates.TurnRight == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
-		break;
-	case SP_KEY_TURN_RIGHT:
-		motionKeyStates.TurnRight = KEYSTATE_UP;
-		keyboardMotion.Yaw = (motionKeyStates.TurnLeft == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
-		break;
-	case SP_KEY_TURN_UP:
-		motionKeyStates.TurnUp = KEYSTATE_UP;
-		keyboardMotion.Pitch = (motionKeyStates.TurnUp == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
-		break;
-	case SP_KEY_TURN_DOWN:
-		motionKeyStates.TurnDown = KEYSTATE_UP;
-		keyboardMotion.Pitch = (motionKeyStates.TurnDown == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
-		break;
-
-		/*
-			Other Keyboard Functions (add any new special key controls here)
-
-			As per keyReleased, you only need to handle the key here if you want something
-			to happen when the user lets go. If you just want something to happen when the
-			key is first pressed, add you code to specialKeyPressed instead.
-		*/
-	}
 }
 
 /*
@@ -583,6 +230,7 @@ void init(void)
 	// set background color to be black
 	glClearColor(0, 0, 0, 1.0);
 
+	createSkyscraperDisplayList();
 
 	initLights();
 
@@ -590,16 +238,13 @@ void init(void)
 
 	initCameraPosition();
 
-	//create the quadric for drawing the sphere
-	sphereQuadric = gluNewQuadric();
+	initSkyPosition();
 
-	//create the quadric for drawing the cylinder
-	cylinderQuadric = gluNewQuadric();
+	initShape();
 
-	icyTexture = loadPPM("icy.ppm");
-	skyTexture = loadPPM("sky.ppm");
-	asphaltTexture = loadPPM("asphalt.ppm");
-	roadTexture = loadPPM("road.ppm");
+	initTexture();
+
+	newRandomDelay();
 }
 
 /*
@@ -613,75 +258,17 @@ void init(void)
 void think(void)
 {
 	thetaPropellar += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
+	lightTheta += lightDirection * (360 * FRAME_TIME_SEC);
 
-	/*
-		Keyboard motion handler: complete this section to make your "player-controlled"
-		object respond to keyboard input.
-	*/
 
-	if (keyboardMotion.Roll != MOTION_NONE)
+	if (frameCount % lightDelay == 0)
 	{
-		droneRollHeading += keyboardMotion.Roll * 360.0f * FRAME_TIME_SEC; //60 RPM
-		if (droneRollHeading >= 360)
-			droneRollHeading = 0;
-		else if (droneRollHeading <= 0)
-			droneRollHeading = 360;
-		printf("Drone Roll Heading: %f\n", droneRollHeading);
+		lightDirection = -lightDirection;
+		newRandomDelay();
 	}
 
-	if (keyboardMotion.Pitch != MOTION_NONE)
-	{
-		dronePitchHeading += keyboardMotion.Pitch * 360.0f * FRAME_TIME_SEC; //60 RPM
-		if (dronePitchHeading >= 360)
-			dronePitchHeading = 0;
-		else if (dronePitchHeading <= 0)
-			dronePitchHeading = 360;
-		printf("Drone Pitch Heading: %f\n", dronePitchHeading);
-	}
 
-	if (keyboardMotion.Yaw != MOTION_NONE) {
-		droneYawHeading += keyboardMotion.Yaw * 360.0f * FRAME_TIME_SEC; //60 RPM
-		if (droneYawHeading >= 360)
-			droneYawHeading = 0;
-		else if (droneYawHeading <= 0)
-			droneYawHeading = 360;
-		printf("Drone Yaw Heading: %f\n", droneYawHeading);
-
-		cameraPosition[0] = dronePosition[0] + ((float)sin((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-		cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-	}
-
-	// Move Forward backward
-	if (keyboardMotion.Surge != MOTION_NONE) {
-		dronePosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-		dronePosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-
-		cameraPosition[0] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
-		cameraPosition[2] -= (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Surge * droneSpeed * FRAME_TIME_SEC);
-	}
-
-	// Move left right
-	if (keyboardMotion.Sway != MOTION_NONE) {
-		dronePosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-		dronePosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC); //20 m/sec
-
-		cameraPosition[0] += (cos(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
-		cameraPosition[2] -= (sin(droneYawHeading * DEG_TO_RAD) * keyboardMotion.Sway * droneSpeed * FRAME_TIME_SEC);
-	}
-
-	// Move down until ground
-	if (keyboardMotion.Heave == MOTION_DOWN && dronePosition[1] >= -0.f)
-	{
-		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
-	}
-
-	// Move up
-	if (keyboardMotion.Heave == MOTION_UP)
-	{
-		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
-		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
-	}
+	movement();
 }
 
 /*
@@ -691,96 +278,7 @@ void think(void)
 	off, or change colour) you may want to replace this with a drawLights function that gets called
 	at the beginning of display() instead of init().
 */
-void initLights(void)
-{
-	// Simple lighting setup
-	GLfloat globalAmbient[] = { 0.4f, 0.4f, 0.4f, 1 };
-	GLfloat lightPosition[] = { 5.0f, 5.0f, 5.0f, 1.0f };
-	GLfloat ambientLight[] = { 0, 0, 0, 1 };
-	GLfloat diffuseLight[] = { 1, 1, 1, 1 };
-	GLfloat specularLight[] = { 1, 1, 1, 1 };
-
-	// Configure global ambient lighting.
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
-
-	// Configure Light 0.
-	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-
-	// Enable lighting
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-
-	// Make GL normalize the normal vectors we supply.
-	glEnable(GL_NORMALIZE);
-
-	// Enable use of simple GL colours as materials.
-	glEnable(GL_COLOR_MATERIAL);
-}
-
-void initCameraPosition(void)
-{
-	cameraPosition[0] = dronePosition[0] + ((float)sin((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-	cameraPosition[1] = 2.5;
-	cameraPosition[2] = dronePosition[2] + ((float)cos((droneYawHeading - cameraAngle) * DEG_TO_RAD)) * cameraDistanceXY;
-}
-
-void initDroneCenterPosition(void)
-{
-	dronePosition[0] = GROUND_WIDTH / 2;
-	dronePosition[1] = 0.f;
-	dronePosition[2] = GROUND_LENGTH / 2;
-}
-
 /******************************************************************************/
-
-/*
-  A simple ground plane in the XZ plane with vertex normals specified for lighting
-  the top face of the ground. The bottom face is not lit.
-*/
-
-void basicGround(void)
-{
-	glColor3d(0.8, 0.9, 1);
-
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, asphaltTexture);
-
-	glPushMatrix();
-	glTranslated(0, -BODY_RADIUS / 2, 0); //shifted this so looks like in snow
-
-	for (int i = 0; i < GROUND_WIDTH; i += 10)
-	{
-		for (int j = 0; j < GROUND_LENGTH; j += 10)
-		{
-			glBegin(GL_QUADS);
-
-			glNormal3d(0, 1, 0);
-			glTexCoord2f(0, 0);
-			glVertex3d(i, 0, j);
-
-			glNormal3d(0, 1, 0);
-			glTexCoord2f(1, 0);
-			glVertex3d(i + GROUND_GRID, 0, j);
-
-			glNormal3d(0, 1, 0);
-			glTexCoord2f(1, 1);
-			glVertex3d(i + GROUND_GRID, 0, j + GROUND_GRID);
-
-			glNormal3d(0, 1, 0);
-			glTexCoord2f(0, 1);
-			glVertex3d(i, 0, j + GROUND_GRID);
-
-			glEnd();
-		}
-	}
-
-	glPopMatrix();
-
-	glDisable(GL_TEXTURE_2D);
-}
 
 void drawOrigin(void)
 {
@@ -810,304 +308,4 @@ void drawOrigin(void)
 	glEnd();
 
 	glPopMatrix();
-}
-
-void drawDrone(void)
-{
-	glColor3f(1.0, 1.0, 1.0);
-	glPushMatrix();
-
-	// moving the drone
-	glTranslatef(dronePosition[0], dronePosition[1], dronePosition[2]);
-	glRotated(droneYawHeading, 0, 1, 0); // yaw rotate
-	glRotated(dronePitchHeading, 1, 0, 0); // pitch rotate
-	glRotated(droneRollHeading, 0, 0, 1); // roll rotate
-
-	// draw the body
-	drawBody();
-
-	//drawLeg();
-
-	glPushMatrix();
-	glRotated(45, 0, 1, 0);
-
-	// left side arm
-	glPushMatrix();
-	glTranslated(-(BODY_RADIUS * 1.5), 0, 0);
-	drawArm(1);
-	glPopMatrix();
-
-	// right side arm
-	glPushMatrix();
-	glTranslated(BODY_RADIUS * 1.5, 0, 0);
-	glRotated(180, 0, 1, 0);
-	drawArm(1);
-	glPopMatrix();
-
-	// front arm
-	glPushMatrix();
-	glTranslated(0, 0, BODY_RADIUS * 1.5);
-	glRotated(90, 0, 1, 0);
-	drawArm(-1);
-	glPopMatrix();
-
-	// back arm
-	glPushMatrix();
-	glTranslated(0, 0, -(BODY_RADIUS * 1.5));
-	glRotated(-90, 0, 1, 0);
-	drawArm(-1);
-	glPopMatrix();
-
-	glPopMatrix();
-
-	glPopMatrix();
-}
-
-void drawBody(void)
-{
-	glPushMatrix();
-
-	glPushMatrix();
-	// squash the y axis
-	glScaled(BODY_RADIUS, BODY_Y_SCALE, BODY_RADIUS);
-
-	gluSphere(sphereQuadric, BODY_RADIUS, 50, 50);
-
-	glTranslated(0.0, BODY_RADIUS, 0.0);
-	glPopMatrix();
-
-	//glPushMatrix();
-	//glTranslated(0, 0, -BODY_RADIUS * 1.1);
-	//gluSphere(sphereQuadric, 0.3, 10, 10);
-	//glPopMatrix();
-
-	glPopMatrix();
-}
-
-void drawArm(int direction)
-{
-	glPushMatrix();
-
-	// bottom arm
-	//glTranslated(-(DRONE_ARM_LENGTH / 2.0), 0, 0);
-
-	glPushMatrix();
-	glRotated(90, 0, 0, 1);
-	glRotated(90, 1, 0, 0);
-	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH * 1.5, DRONE_ARM_LENGTH, 10, 10);
-	glPopMatrix();
-
-	// arm cap
-	glPushMatrix();
-	gluSphere(sphereQuadric, DRONE_ARM_WIDTH * 1.5, 10, 10);
-	glPopMatrix();
-
-	// up-right arm
-
-	glPushMatrix();
-	glRotated(90, -1, 0, 0);
-	gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 4, 10, 10);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(0, DRONE_ARM_LENGTH / 4, 0);
-	drawPropeller();
-	glPopMatrix();
-
-	glPopMatrix();
-}
-
-void drawLeg(void)
-{
-	glPushMatrix();
-
-	glTranslated(BODY_RADIUS * 0.4, -BODY_Y_SCALE * 0.75, BODY_RADIUS * 0.4);
-	glRotated(90, 1, 0, 0);
-	//gluCylinder(cylinderQuadric, DRONE_ARM_WIDTH, DRONE_ARM_WIDTH, DRONE_ARM_LENGTH / 4, 10, 10);
-	glPushMatrix();
-	gluSphere(sphereQuadric, DRONE_ARM_WIDTH, 10, 10);
-	glPopMatrix();
-	glPopMatrix();
-}
-
-void drawPropeller(void)
-{
-	glPushMatrix();
-
-	glRotated(thetaPropellar, 0, 1, 0);
-
-	// draw first propeller wing
-	glPushMatrix();
-	glTranslated(-(PROPELLER_LENGTH / 2.0), 0, 0);
-	glRotated(90, 0, 0, 1);
-	glRotated(90, 1, 0, 0);
-	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
-	glPopMatrix();
-
-	// draw second propeller wing
-	glPushMatrix();
-	glTranslated(0, 0, -(PROPELLER_LENGTH / 2.0));
-	gluCylinder(cylinderQuadric, PROPELLER_WIDTH, PROPELLER_WIDTH, PROPELLER_LENGTH, 10, 10);
-	glPopMatrix();
-
-	//draw the first propellar end caps
-	glPushMatrix();
-	glTranslated(-(PROPELLER_LENGTH / 2), 0.0, 0.0);
-	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(PROPELLER_LENGTH / 2, 0.0, 0.0);
-	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
-	glPopMatrix();
-
-	// draw the second propellar end caps
-	glPushMatrix();
-	glTranslated(0.0, 0.0, -(PROPELLER_LENGTH / 2));
-	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslated(0.0, 0.0, PROPELLER_LENGTH / 2);
-	gluSphere(sphereQuadric, PROPELLER_WIDTH, 10, 10);
-	glPopMatrix();
-
-	//draw the propellar center
-	glPushMatrix();
-	gluSphere(sphereQuadric, PROPELLER_WIDTH * 1.5, 6, 6);
-	glPopMatrix();
-
-	glPopMatrix();
-}
-
-// Load a binary ppm file into an OpenGL texture and return the OpenGL texture reference ID
-int loadPPM(char* filename)
-{
-	FILE *inFile; //File pointer
-	int width, height, maxVal; //image metadata from PPM file format
-	int totalPixels; // total number of pixels in the image
-
-					 // temporary character
-	char tempChar;
-	// counter variable for the current pixel in the image
-	int i;
-
-	char header[100]; //input buffer for reading in the file header information
-
-	// if the original values are larger than 255
-	float RGBScaling;
-
-	// temporary variables for reading in the red, green and blue data of each pixel
-	int red, green, blue;
-
-	GLubyte *texture; //the texture buffer pointer
-
-	//create one texture with the next available index
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-
-	inFile = fopen(filename, "r");
-
-	// read in the first header line
-	//    - "%[^\n]"  matches a string of all characters not equal to the new line character ('\n')
-	//    - so we are just reading everything up to the first line break
-	fscanf(inFile, "%[^\n] ", header);
-
-	// make sure that the image begins with 'P3', which signifies a PPM file
-	if ((header[0] != 'P') || (header[1] != '3'))
-	{
-		printf("This is not a PPM file!\n");
-		exit(0);
-	}
-
-	// we have a PPM file
-	printf("This is a PPM file\n");
-
-	// read in the first character of the next line
-	fscanf(inFile, "%c", &tempChar);
-
-	// while we still have comment lines (which begin with #)
-	while (tempChar == '#')
-	{
-		// read in the comment
-		fscanf(inFile, "%[^\n] ", header);
-
-		// print the comment
-		printf("%s\n", header);
-
-		// read in the first character of the next line
-		fscanf(inFile, "%c", &tempChar);
-	}
-
-	// the last one was not a comment character '#', so we need to put it back into the file stream (undo)
-	ungetc(tempChar, inFile);
-
-	// read in the image hieght, width and the maximum value
-	fscanf(inFile, "%d %d %d", &width, &height, &maxVal);
-	// print out the information about the image file
-	printf("%d rows  %d columns  max value= %d\n", height, width, maxVal);
-
-	// compute the total number of pixels in the image
-	totalPixels = width * height;
-
-	// allocate enough memory for the image  (3*) because of the RGB data
-	texture = malloc(3 * sizeof(GLuint) * totalPixels);
-
-	// determine the scaling for RGB values
-	RGBScaling = (float)(255.0 / maxVal);
-
-	// if the maxValue is 255 then we do not need to scale the 
-	//    image data values to be in the range or 0 to 255
-	if (maxVal == 255)
-	{
-		for (i = 0; i < totalPixels; i++)
-		{
-			// read in the current pixel from the file
-			fscanf(inFile, "%d %d %d", &red, &green, &blue);
-
-			// store the red, green and blue data of the current pixel in the data array
-			texture[3 * totalPixels - 3 * i - 3] = (GLubyte)red;
-			texture[3 * totalPixels - 3 * i - 2] = (GLubyte)green;
-			texture[3 * totalPixels - 3 * i - 1] = (GLubyte)blue;
-		}
-	}
-	else  // need to scale up the data values
-	{
-		for (i = 0; i < totalPixels; i++)
-		{
-			// read in the current pixel from the file
-			fscanf(inFile, "%d %d %d", &red, &green, &blue);
-
-			// store the red, green and blue data of the current pixel in the data array
-			texture[3 * totalPixels - 3 * i - 3] = (GLubyte)(red * RGBScaling);
-			texture[3 * totalPixels - 3 * i - 2] = (GLubyte)(green * RGBScaling);
-			texture[3 * totalPixels - 3 * i - 1] = (GLubyte)(blue * RGBScaling);
-		}
-	}
-
-
-
-
-	fclose(inFile);
-
-	glBindTexture(GL_TEXTURE_2D, textureID);
-
-
-	//Set the texture parameters
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-	//Define the texture
-	//glTexImage2D(GL_TEXTURE_2D, 0, 4, (GLuint)width, (GLuint)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
-
-	//Create mipmaps
-	gluBuild2DMipmaps(GL_TEXTURE_2D, 4, (GLuint)width, (GLuint)height, GL_RGB, GL_UNSIGNED_BYTE, texture);
-
-	//openGL guarantees to have the texture data stored so we no longer need it
-	free(texture);
-
-	//return the current texture id
-	return(textureID);
 }

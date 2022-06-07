@@ -122,12 +122,46 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Building.c" />
+    <ClCompile Include="Camera.c" />
+    <ClCompile Include="City.c" />
     <ClCompile Include="CityScene.c" />
+    <ClCompile Include="DisplayList.c" />
+    <ClCompile Include="Drone.c" />
+    <ClCompile Include="Ground.c" />
+    <ClCompile Include="Input.c" />
+    <ClCompile Include="Light.c" />
+    <ClCompile Include="Lighthouse.c" />
+    <ClCompile Include="Material.c" />
+    <ClCompile Include="OBJ.c" />
+    <ClCompile Include="Random.c" />
+    <ClCompile Include="Shape.c" />
+    <ClCompile Include="Sky.c" />
+    <ClCompile Include="Texture.c" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CityScene.txt" />
     <Text Include="CityScene2.txt" />
     <Text Include="Snowman3D.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Building.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="City.h" />
+    <ClInclude Include="CityScene.h" />
+    <ClInclude Include="Angle.h" />
+    <ClInclude Include="DisplayList.h" />
+    <ClInclude Include="Drone.h" />
+    <ClInclude Include="Ground.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Lighthouse.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="OBJ.h" />
+    <ClInclude Include="Random.h" />
+    <ClInclude Include="Shape.h" />
+    <ClInclude Include="Sky.h" />
+    <ClInclude Include="Texture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
