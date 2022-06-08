@@ -1,4 +1,5 @@
-﻿  Light.c
+﻿  Ground.c
+e:\github\cityscene\cityscene\ground.c(56): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   CityScene.vcxproj -> E:\Github\CityScene\Debug\CityScene.exe
   E:\Github\CityScene\CityScene\freeglut\bin\freeglut.dll
   1 File(s) copied

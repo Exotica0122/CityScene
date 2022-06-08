@@ -5,16 +5,17 @@ int lightDirection = 1;
 
 void drawLighthouse(void)
 {
-	glColor3d(1, 1, 1);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, brickTexture);
 
 	glPushMatrix();
 
 	glRotated(270, 1, 0, 0);
 
 	glMaterialfv(GL_FRONT, GL_AMBIENT, zeroMaterial);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, blueDiffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, zeroMaterial);
-	glMaterialf(GL_FRONT, GL_SHININESS, noShininess);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, whiteDiffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, whiteSpecular);
+	glMaterialf(GL_FRONT, GL_SHININESS, highShininess);
 
 	drawLighthouseBottomBody();
 
@@ -23,6 +24,9 @@ void drawLighthouse(void)
 
 	drawLighthouseCap();
 	drawLighthouseTopBody();
+
+	glDisable(GL_TEXTURE_2D);
+
 	drawLighthousePoles();
 	drawLighthouseStand();
 
@@ -31,12 +35,20 @@ void drawLighthouse(void)
 	drawStandHead();
 	glPopMatrix();
 
+	glMaterialfv(GL_FRONT, GL_AMBIENT, zeroMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, whiteDiffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, whiteSpecular);
+	glMaterialf(GL_FRONT, GL_SHININESS, highShininess);
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, brickTexture);
+
 	glPushMatrix();
-	glRotated(0, 0, 0, 0);
 	glTranslated(0, 0, 6);
 	drawLighthouseHead();
 	glPopMatrix();
 
+	glDisable(GL_TEXTURE_2D);
 
 	glPopMatrix();
 
@@ -77,7 +89,7 @@ void drawStandHead(void)
 	glPushMatrix();
 	// animate
 	glRotated(lightTheta, 0, 0, 1);
-	glRotated(100, 0, 1, 0);
+	glRotated(105, 0, 1, 0);
 	glTranslated(0, 0, 0.5);
 	drawLightSource();
 	glPopMatrix();
@@ -93,13 +105,17 @@ void drawLightSource(void)
 	glPushMatrix();
 	gluCylinder(cylinderQuadric, 0.2, 0.5, 1, 10, 10);
 
-	// Hacked light
-	glColor4d(1, 1, 0, 0.3);
-	gluCylinder(cylinderQuadric, 0.2, 1, 20, 10, 10);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, lightAmbient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, lightAmbient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, lightAmbient);
+	glMaterialf(GL_FRONT, GL_SHININESS, highShininess);
 
+	glLightfv(GL_LIGHT1, GL_POSITION, spotlightPos);
+
+	gluCylinder(cylinderQuadric, 0.2, 1, 30, 25, 1);
 	glDisable(GL_BLEND);
 
-	glColor4d(1, 1, 1, 1);
+	//glColor4d(1, 1, 1, 1);
 	glTranslated(0, 0, 1);
 	drawCircle(0, 0, 0.5);
 
@@ -167,5 +183,5 @@ void drawCircle(float x, float y, float radius)
 
 void newRandomDelay(void)
 {
-	lightDelay = (int) RandomFloat(100, 500);
+	lightDelay = (int) RandomFloat(100, 700);
 }

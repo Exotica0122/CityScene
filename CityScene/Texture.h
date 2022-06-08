@@ -10,6 +10,9 @@ GLuint skyTexture;
 GLuint asphaltTexture;
 GLuint roadTexture;
 GLuint apartmentTexture;
+GLuint brickTexture;
+GLuint waterTexture;
+
 
 // Prototypes
 

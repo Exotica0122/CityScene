@@ -122,7 +122,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Building.c" />
     <ClCompile Include="Camera.c" />
     <ClCompile Include="City.c" />
     <ClCompile Include="CityScene.c" />
@@ -140,12 +139,12 @@
     <ClCompile Include="Texture.c" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Building.txt" />
     <Text Include="CityScene.txt" />
     <Text Include="CityScene2.txt" />
     <Text Include="Snowman3D.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Building.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="City.h" />
     <ClInclude Include="CityScene.h" />

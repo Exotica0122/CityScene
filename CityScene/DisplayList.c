@@ -1,62 +1,95 @@
 #include "DisplayList.h"
 
-// Draw Vertices
-GLfloat vertices[][3] = { {-1.0,-1.0,-1.0}, {1.0,-1.0,-1.0}, {1.0,1.0,-1.0}, {-1.0,1.0,-1.0}, {-1.0,-1.0, 1.0}, {1.0,-1.0, 1.0}, {1.0,1.0, 1.0}, {-1.0,1.0, 1.0} };
-// Colors of the vertices
-GLfloat colors[][3] = { {0.0,0.0,0.0}, {1.0,0.0,0.0}, {1.0,1.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0}, {1.0,0.0,1.0}, {1.0,1.0,1.0}, {0.0,1.0,1.0} };
-
-void createSkyscraperDisplayList(void)
+void initDisplayLists(void)
 {
-	skyscraperDL = glGenLists(1);
-	glNewList(skyscraperDL, GL_COMPILE);
-	drawSkyscraper();
+	createBuildingDisplayList();
+	createTreeDisplayList();
+}
+
+void createBuildingDisplayList(void)
+{
+	BuildingDL = glGenLists(3);
+
+	glNewList(BuildingDL, GL_COMPILE);
+	renderMeshObject(house);
+	glEndList();
+
+	glNewList(BuildingDL + 1, GL_COMPILE);
+	glScaled(10, 10, 10);
+	renderMeshObject(building);
+	glEndList();
+
+	glNewList(BuildingDL + 2, GL_COMPILE);
+	glPushMatrix();
+	glScaled(70, 70, 70);
+	renderMeshObject(apartment);
+	glPopMatrix();
 	glEndList();
 }
 
-void drawSkyscraper(void)
+void createTreeDisplayList(void)
 {
-	polygon(0, 3, 2, 1);
-	polygon(2, 3, 7, 6);
-	polygon(0, 4, 7, 3);
-	polygon(1, 2, 6, 5);
-	polygon(4, 5, 6, 7);
-	polygon(0, 1, 5, 4);
-}
+	treeDL = glGenLists(3);
 
-void polygon(int a, int b, int c, int d)
-{
-	//glEnable(GL_TEXTURE_2D);
-	//glBindTexture(GL_TEXTURE_2D, apartmentTexture);
+	// -------------------------------------------------------
 
-	glBegin(GL_POLYGON);
+	glNewList(treeDL, GL_COMPILE);
+	glPushMatrix();
+	glScaled(0.09, 0.09, 0.09);
 
-	glTexCoord2f(0, 0);
-	// TODO: normals for building
-	//glNormal3d();
-	glVertex3fv(vertices[a]);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeLeafMaterial);
+	glMaterialf(GL_FRONT, GL_SHININESS, noShininess);
 
-	glTexCoord2f(0, 1);
-	glVertex3fv(vertices[b]);
+	renderMeshObject(tree1Leaf);
 
-	glTexCoord2f(1, 1);
-	glVertex3fv(vertices[c]);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeTrunkMaterial);
 
-	glTexCoord2f(1, 0);
-	glVertex3fv(vertices[d]);
+	renderMeshObject(tree1Trunk);
 
-	glEnd();
+	glPopMatrix();
+	glEndList();
 
-	//glDisable(GL_TEXTURE_2D);
-}
-/*
-   Map the vertices to the cube faces.
-*/
-void colorcube(void)
-{
-	polygon(0, 3, 2, 1);
-	polygon(2, 3, 7, 6);
-	polygon(0, 4, 7, 3);
-	polygon(1, 2, 6, 5);
-	polygon(4, 5, 6, 7);
-	polygon(0, 1, 5, 4);
+	// -------------------------------------------------------
+
+	glNewList(treeDL + 1, GL_COMPILE);
+	glPushMatrix();
+	glScaled(3, 3, 3);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeLeafMaterial);
+
+	renderMeshObject(tree2Leaf);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeTrunkMaterial);
+
+	renderMeshObject(tree2Trunk);
+	glPopMatrix();
+	glEndList();
+	
+	// -------------------------------------------------------
+
+	glNewList(treeDL + 2, GL_COMPILE);
+	glPushMatrix();
+	glScaled(1.5, 1.5, 1.5);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeLeafMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeLeafMaterial);
+
+	renderMeshObject(tree3Leaf);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, treeTrunkMaterial);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, treeTrunkMaterial);
+
+	renderMeshObject(tree3Trunk);
+	glPopMatrix();
+	glEndList();
 }

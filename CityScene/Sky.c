@@ -15,6 +15,11 @@ void initSkyPosition(void)
 
 void drawSky(void)
 {
+	glMaterialfv(GL_FRONT, GL_AMBIENT, whiteAmbient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, whiteDiffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, zeroMaterial);
+	glMaterialf(GL_FRONT, GL_SHININESS, midShininess);
+
 	glEnable(GL_TEXTURE_2D);
 
 	glColor3d(1, 1, 1);
@@ -24,7 +29,7 @@ void drawSky(void)
 	glTranslated(skyPosition[0], skyPosition[1], skyPosition[2]);
 	glRotated(270, 1, 0, 0);
 	//gluCylinder(cylinderQuadric, (cameraZFar / 2) - 5, (cameraZFar / 2) - 5, skyHeight, 50, 50);
-	gluSphere(sphereQuadric, (cameraZFar) * 0.95, 30, 30);
+	gluSphere(sphereQuadric, (cameraZFar) * 0.8, 30, 30);
 
 	glPopMatrix();
 

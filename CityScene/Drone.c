@@ -21,7 +21,12 @@ void initDroneCenterPosition(void)
 
 void drawDrone(void)
 {
-	glColor3f(1.0, 1.0, 1.0);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, whiteAmbient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, whiteAmbient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, whiteSpecular);
+	glMaterialf(GL_FRONT, GL_SHININESS, midShininess);
+
+	//glColor3f(1.0, 1.0, 1.0);
 	glPushMatrix();
 
 	// moving the drone

@@ -287,7 +287,7 @@ void movement(void)
 
 	// Move down until ground
 	// && dronePosition[1] > (BODY_RADIUS / 2)
-	if (keyboardMotion.Heave == MOTION_DOWN && dronePosition[1] > (BODY_RADIUS / 2))
+	if (keyboardMotion.Heave == MOTION_DOWN)
 	{
 		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
 		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;

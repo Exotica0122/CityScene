@@ -2,6 +2,8 @@
 
 #include <freeglut.h>
 
+#include "Ground.h"
+
 // Simple lighting setup
 GLfloat globalAmbient[];
 
@@ -11,5 +13,7 @@ GLfloat diffuseLight[];
 GLfloat specularLight[];
 
 GLfloat spotlightPos[];
+GLfloat spotlightDirection[];
+GLfloat spotAngle;
 
 void initLights(void);

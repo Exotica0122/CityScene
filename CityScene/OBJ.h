@@ -41,10 +41,21 @@ typedef struct {
 	meshObjectFace *faces;
 } meshObject;
 
+void initOBJ(void);
 meshObject* loadMeshObject(char *fileName);
 void renderMeshObject(meshObject *object);
 void initMeshObjectFace(meshObjectFace *face, char* faceData, int faceDataLength);
 void freeMeshObject(meshObject *object);
 
-meshObject *cubeMesh;
-GLuint marbleTexture;
+meshObject *tree1Leaf;
+meshObject *tree1Trunk;
+
+meshObject *tree2Leaf;
+meshObject *tree2Trunk;
+
+meshObject *tree3Leaf;
+meshObject *tree3Trunk;
+
+meshObject *house;
+meshObject *apartment;
+meshObject *building;

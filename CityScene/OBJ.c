@@ -1,5 +1,21 @@
 #include "OBJ.h"
 
+void initOBJ(void)
+{
+	tree1Trunk = loadMeshObject("tree1Trunk.obj");
+	tree1Leaf = loadMeshObject("tree1Leaf.obj");
+
+	tree2Trunk = loadMeshObject("tree2Trunk.obj");
+	tree2Leaf = loadMeshObject("tree2Leaf.obj");
+
+	tree3Trunk = loadMeshObject("tree3Trunk.obj");
+	tree3Leaf = loadMeshObject("tree3Leaf.obj");
+
+	house = loadMeshObject("house.obj");
+	building = loadMeshObject("building.obj");
+	apartment = loadMeshObject("apartment.obj");
+}
+
 meshObject* loadMeshObject(char *fileName)
 {
 	FILE *inFile;

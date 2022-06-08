@@ -51,9 +51,6 @@
     <ClCompile Include="City.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Building.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DisplayList.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +69,9 @@
       <Filter>Resource Files</Filter>
     </Text>
     <Text Include="Snowman3D.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Building.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>
@@ -113,9 +113,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="City.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Building.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DisplayList.h">

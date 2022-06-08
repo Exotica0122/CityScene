@@ -58,7 +58,7 @@ void initCameraPosition(void);
 void initSkyPosition(void);
 void initDroneCenterPosition(void);
 
-void drawOrigin(void);
+//void drawOrigin(void);
 
 /******************************************************************************
  * Animation-Specific Setup (Add your own definitions, constants, and globals here)
@@ -70,11 +70,6 @@ int renderFillEnabled = 1;
 // window dimensions
 GLint windowWidth = 1280;
 GLint windowHeight = 720;
-
-//spot light
-GLfloat spotlightPos[] = { 0.0f, 0.0f, 6.0f, 1.0f }; //remember fourth parameter is w (when w = 1.0 its a directional light)
-GLfloat spotDirection[] = { 0.0f, 0.0f, 0.0f };
-double angle = 0.0f;
 
 /******************************************************************************
  * Entry Point (don't put anything except the main function here)
@@ -141,7 +136,7 @@ void display(void)
 		dronePosition[0], dronePosition[1], dronePosition[2],
 		0, 1, 0);
 
-	drawOrigin();
+	//drawOrigin();
 
 	drawSky();
 
@@ -230,8 +225,6 @@ void init(void)
 	// set background color to be black
 	glClearColor(0, 0, 0, 1.0);
 
-	createSkyscraperDisplayList();
-
 	initLights();
 
 	initDroneCenterPosition();
@@ -244,7 +237,25 @@ void init(void)
 
 	initTexture();
 
+	initOBJ();
+
 	newRandomDelay();
+
+	initDisplayLists();
+
+	initForest();
+
+	//Enable use of fog
+	glEnable(GL_FOG);
+
+	// define the color of the fog, white
+	GLfloat fogColor[4] = { 1,1,1,1 };
+	// set the color of the fog
+	glFogfv(GL_FOG_COLOR, fogColor);
+	//set the fog mode to be exponential
+	glFogf(GL_FOG_MODE, GL_EXP);
+	//set the fog density
+	glFogf(GL_FOG_DENSITY, 0.0025);
 }
 
 /*
@@ -258,7 +269,7 @@ void init(void)
 void think(void)
 {
 	thetaPropellar += 360 * FRAME_TIME_SEC; //360 degrees per second or 60 RPM
-	lightTheta += lightDirection * (360 * FRAME_TIME_SEC);
+	lightTheta += lightDirection * (180 * FRAME_TIME_SEC);
 
 
 	if (frameCount % lightDelay == 0)
@@ -280,32 +291,32 @@ void think(void)
 */
 /******************************************************************************/
 
-void drawOrigin(void)
-{
-	glPushMatrix();
-
-	glTranslated(GROUND_WIDTH / 2, 0, GROUND_LENGTH / 2);
-
-	glColor3f(0.0f, 1.0f, 1.0f);
-	glutWireSphere(0.1, 10, 10);
-	glBegin(GL_LINES);
-
-	//x axis -red
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(2.0f, 0.0f, 0.0f);
-
-	//y axis -green
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 2.0f, 0.0f);
-
-	//z axis - blue
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 2.0f);
-
-	glEnd();
-
-	glPopMatrix();
-}
+//void drawOrigin(void)
+//{
+//	glPushMatrix();
+//
+//	glTranslated(GROUND_WIDTH / 2, 0, GROUND_LENGTH / 2);
+//
+//	glColor3f(0.0f, 1.0f, 1.0f);
+//	glutWireSphere(0.1, 10, 10);
+//	glBegin(GL_LINES);
+//
+//	//x axis -red
+//	glColor3f(1.0f, 0.0f, 0.0f);
+//	glVertex3f(0.0f, 0.0f, 0.0f);
+//	glVertex3f(2.0f, 0.0f, 0.0f);
+//
+//	//y axis -green
+//	glColor3f(0.0f, 1.0f, 0.0f);
+//	glVertex3f(0.0f, 0.0f, 0.0f);
+//	glVertex3f(0.0f, 2.0f, 0.0f);
+//
+//	//z axis - blue
+//	glColor3f(0.0f, 0.0f, 1.0f);
+//	glVertex3f(0.0f, 0.0f, 0.0f);
+//	glVertex3f(0.0f, 0.0f, 2.0f);
+//
+//	glEnd();
+//
+//	glPopMatrix();
+//}
