@@ -84,18 +84,20 @@ motionstate4_t keyboardMotion;
 #define KEY_MOVE_LEFT		'a'
 #define KEY_MOVE_RIGHT		'd'
 #define KEY_EXIT			27 // Escape key.
-#define KEY_MOVE_UP ' '
+//#define KEY_MOVE_UP ' '
 #define KEY_TURN_CLOCKWISE 'e'
 #define KEY_TURN_ANTICLOCKWISE 'q'
 
 
 // Define all GLUT special keys used for input (add any new key definitions here).
 
-#define SP_KEY_MOVE_DOWN	GLUT_KEY_SHIFT_L
+//#define SP_KEY_MOVE_DOWN	GLUT_KEY_SHIFT_L
 #define SP_KEY_TURN_LEFT	GLUT_KEY_LEFT
 #define SP_KEY_TURN_RIGHT	GLUT_KEY_RIGHT
-#define SP_KEY_TURN_UP		GLUT_KEY_UP
-#define SP_KEY_TURN_DOWN	GLUT_KEY_DOWN
+//#define SP_KEY_TURN_UP	GLUT_KEY_UP
+//#define SP_KEY_TURN_DOWN	GLUT_KEY_DOWN
+#define SP_KEY_MOVE_UP		GLUT_KEY_UP
+#define SP_KEY_MOVE_DOWN	GLUT_KEY_DOWN
 
 void keyPressed(unsigned char key, int x, int y);
 void specialKeyPressed(int key, int x, int y);

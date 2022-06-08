@@ -46,18 +46,18 @@ void keyPressed(unsigned char key, int x, int y)
 		motionKeyStates.MoveRight = KEYSTATE_DOWN;
 		keyboardMotion.Sway = MOTION_RIGHT;
 		break;
-	case KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_DOWN;
-		keyboardMotion.Heave = MOTION_UP;
-		break;
-	case KEY_TURN_CLOCKWISE:
-		motionKeyStates.TurnClockwise = KEYSTATE_DOWN;
-		keyboardMotion.Roll = MOTION_CLOCKWISE;
-		break;
-	case KEY_TURN_ANTICLOCKWISE:
-		motionKeyStates.TurnAnticlockwise = KEYSTATE_DOWN;
-		keyboardMotion.Roll = MOTION_ANTICLOCKWISE;
-		break;
+	//case KEY_MOVE_UP:
+	//	motionKeyStates.MoveUp = KEYSTATE_DOWN;
+	//	keyboardMotion.Heave = MOTION_UP;
+	//	break;
+	//case KEY_TURN_CLOCKWISE:
+	//	motionKeyStates.TurnClockwise = KEYSTATE_DOWN;
+	//	keyboardMotion.Roll = MOTION_CLOCKWISE;
+	//	break;
+	//case KEY_TURN_ANTICLOCKWISE:
+	//	motionKeyStates.TurnAnticlockwise = KEYSTATE_DOWN;
+	//	keyboardMotion.Roll = MOTION_ANTICLOCKWISE;
+	//	break;
 
 		/*
 			Other Keyboard Functions (add any new character key controls here)
@@ -85,10 +85,6 @@ void specialKeyPressed(int key, int x, int y)
 
 			This works as per the motion keys in keyPressed.
 		*/
-	case SP_KEY_MOVE_DOWN:
-		motionKeyStates.MoveDown = KEYSTATE_DOWN;
-		keyboardMotion.Heave = MOTION_DOWN;
-		break;
 	case SP_KEY_TURN_LEFT:
 		motionKeyStates.TurnLeft = KEYSTATE_DOWN;
 		keyboardMotion.Yaw = MOTION_ANTICLOCKWISE;
@@ -97,14 +93,23 @@ void specialKeyPressed(int key, int x, int y)
 		motionKeyStates.TurnRight = KEYSTATE_DOWN;
 		keyboardMotion.Yaw = MOTION_CLOCKWISE;
 		break;
-	case SP_KEY_TURN_UP:
-		motionKeyStates.TurnUp = KEYSTATE_DOWN;
-		keyboardMotion.Pitch = MOTION_CLOCKWISE;
+	case SP_KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_DOWN;
+		keyboardMotion.Heave = MOTION_UP;
 		break;
-	case SP_KEY_TURN_DOWN:
-		motionKeyStates.TurnDown = KEYSTATE_DOWN;
-		keyboardMotion.Pitch = MOTION_ANTICLOCKWISE;
+	case SP_KEY_MOVE_DOWN:
+		motionKeyStates.MoveDown = KEYSTATE_DOWN;
+		keyboardMotion.Heave = MOTION_DOWN;
 		break;
+
+	//case SP_KEY_TURN_UP:
+	//	motionKeyStates.TurnUp = KEYSTATE_DOWN;
+	//	keyboardMotion.Pitch = MOTION_CLOCKWISE;
+	//	break;
+	//case SP_KEY_TURN_DOWN:
+	//	motionKeyStates.TurnDown = KEYSTATE_DOWN;
+	//	keyboardMotion.Pitch = MOTION_ANTICLOCKWISE;
+	//	break;
 
 		/*
 			Other Keyboard Functions (add any new special key controls here)
@@ -153,18 +158,18 @@ void keyReleased(unsigned char key, int x, int y)
 		motionKeyStates.MoveRight = KEYSTATE_UP;
 		keyboardMotion.Sway = (motionKeyStates.MoveLeft == KEYSTATE_DOWN) ? MOTION_LEFT : MOTION_NONE;
 		break;
-	case KEY_MOVE_UP:
-		motionKeyStates.MoveUp = KEYSTATE_UP;
-		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
-		break;
-	case KEY_TURN_CLOCKWISE:
-		motionKeyStates.TurnClockwise = KEYSTATE_UP;
-		keyboardMotion.Roll = (motionKeyStates.TurnClockwise == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
-		break;
-	case KEY_TURN_ANTICLOCKWISE:
-		motionKeyStates.TurnAnticlockwise = KEYSTATE_UP;
-		keyboardMotion.Roll = (motionKeyStates.TurnAnticlockwise == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
-		break;
+	//case KEY_MOVE_UP:
+	//	motionKeyStates.MoveUp = KEYSTATE_UP;
+	//	keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
+	//	break;
+	//case KEY_TURN_CLOCKWISE:
+	//	motionKeyStates.TurnClockwise = KEYSTATE_UP;
+	//	keyboardMotion.Roll = (motionKeyStates.TurnClockwise == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+	//	break;
+	//case KEY_TURN_ANTICLOCKWISE:
+	//	motionKeyStates.TurnAnticlockwise = KEYSTATE_UP;
+	//	keyboardMotion.Roll = (motionKeyStates.TurnAnticlockwise == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
+	//	break;
 
 
 		/*
@@ -191,10 +196,6 @@ void specialKeyReleased(int key, int x, int y)
 
 			This works as per the motion keys in keyReleased.
 		*/
-	case SP_KEY_MOVE_DOWN:
-		motionKeyStates.MoveDown = KEYSTATE_UP;
-		keyboardMotion.Heave = (motionKeyStates.MoveUp == KEYSTATE_DOWN) ? MOTION_UP : MOTION_NONE;
-		break;
 	case SP_KEY_TURN_LEFT:
 		motionKeyStates.TurnLeft = KEYSTATE_UP;
 		keyboardMotion.Yaw = (motionKeyStates.TurnRight == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
@@ -203,14 +204,22 @@ void specialKeyReleased(int key, int x, int y)
 		motionKeyStates.TurnRight = KEYSTATE_UP;
 		keyboardMotion.Yaw = (motionKeyStates.TurnLeft == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
 		break;
-	case SP_KEY_TURN_UP:
-		motionKeyStates.TurnUp = KEYSTATE_UP;
-		keyboardMotion.Pitch = (motionKeyStates.TurnUp == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+	case SP_KEY_MOVE_UP:
+		motionKeyStates.MoveUp = KEYSTATE_UP;
+		keyboardMotion.Heave = (motionKeyStates.MoveDown == KEYSTATE_DOWN) ? MOTION_DOWN : MOTION_NONE;
 		break;
-	case SP_KEY_TURN_DOWN:
-		motionKeyStates.TurnDown = KEYSTATE_UP;
-		keyboardMotion.Pitch = (motionKeyStates.TurnDown == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
+	case SP_KEY_MOVE_DOWN:
+		motionKeyStates.MoveDown = KEYSTATE_UP;
+		keyboardMotion.Heave = (motionKeyStates.MoveUp == KEYSTATE_DOWN) ? MOTION_UP : MOTION_NONE;
 		break;
+	//case SP_KEY_TURN_UP:
+	//	motionKeyStates.TurnUp = KEYSTATE_UP;
+	//	keyboardMotion.Pitch = (motionKeyStates.TurnUp == KEYSTATE_DOWN) ? MOTION_CLOCKWISE : MOTION_NONE;
+	//	break;
+	//case SP_KEY_TURN_DOWN:
+	//	motionKeyStates.TurnDown = KEYSTATE_UP;
+	//	keyboardMotion.Pitch = (motionKeyStates.TurnDown == KEYSTATE_DOWN) ? MOTION_ANTICLOCKWISE : MOTION_NONE;
+	//	break;
 
 		/*
 			Other Keyboard Functions (add any new special key controls here)
@@ -287,7 +296,7 @@ void movement(void)
 
 	// Move down until ground
 	// && dronePosition[1] > (BODY_RADIUS / 2)
-	if (keyboardMotion.Heave == MOTION_DOWN)
+	if (keyboardMotion.Heave == MOTION_DOWN && dronePosition[1] > (BODY_RADIUS / 2))
 	{
 		dronePosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC; //20 m/sec
 		cameraPosition[1] += keyboardMotion.Heave * droneSpeed * FRAME_TIME_SEC;
