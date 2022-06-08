@@ -1,4 +1,20 @@
-﻿  Input.c
+﻿  City.c
+e:\github\cityscene\cityscene\city.c(57): warning C4305: 'function': truncation from 'double' to 'float'
+  CityScene.c
+e:\github\cityscene\cityscene\cityscene.c(81): warning C4013: 'time' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(147): warning C4013: 'drawCity' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(152): warning C4013: 'drawDrone' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(155): warning C4087: 'basicGround': declared with 'void' parameter list
+e:\github\cityscene\cityscene\cityscene.c(240): warning C4013: 'initOBJ' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(244): warning C4013: 'initDisplayLists' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(246): warning C4013: 'initForest' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\cityscene.c(258): warning C4305: 'function': truncation from 'double' to 'GLfloat'
+e:\github\cityscene\cityscene\cityscene.c(282): warning C4013: 'movement' undefined; assuming extern returning int
+  Drone.c
+  Ground.c
+e:\github\cityscene\cityscene\ground.c(56): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+e:\github\cityscene\cityscene\ground.c(87): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  Input.c
 e:\github\cityscene\cityscene\input.c(275): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
 e:\github\cityscene\cityscene\input.c(276): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
 e:\github\cityscene\cityscene\input.c(278): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
@@ -11,6 +27,12 @@ e:\github\cityscene\cityscene\input.c(290): warning C4244: '+=': conversion from
 e:\github\cityscene\cityscene\input.c(291): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
 e:\github\cityscene\cityscene\input.c(293): warning C4244: '+=': conversion from 'double' to 'GLfloat', possible loss of data
 e:\github\cityscene\cityscene\input.c(294): warning C4244: '-=': conversion from 'double' to 'GLfloat', possible loss of data
+  Light.c
+  Lighthouse.c
+e:\github\cityscene\cityscene\lighthouse.c(179): warning C4013: 'cos' undefined; assuming extern returning int
+e:\github\cityscene\cityscene\lighthouse.c(179): warning C4013: 'sin' undefined; assuming extern returning int
+  Sky.c
+  Generating Code...
   CityScene.vcxproj -> E:\Github\CityScene\Debug\CityScene.exe
   E:\Github\CityScene\CityScene\freeglut\bin\freeglut.dll
   1 File(s) copied

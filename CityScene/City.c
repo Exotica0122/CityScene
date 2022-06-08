@@ -33,6 +33,16 @@ void drawCity(void)
 	glCallList(BuildingDL + 2);
 	glPopMatrix();
 
+	glPushMatrix();
+	glTranslated(40, 0, -10);
+	glCallList(BuildingDL);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(-100, 0, -10);
+	glCallList(BuildingDL + 1);
+	glPopMatrix();
+
 	glPopMatrix();
 
 	drawForest();

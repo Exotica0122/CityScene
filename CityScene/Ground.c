@@ -49,11 +49,42 @@ void basicGround(void)
 	glDisable(GL_TEXTURE_2D);
 
 	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, sandTexture);
+
+	for (int i = 0 ; i < GROUND_WIDTH; i += SAND_GRID)
+	{
+		for (int j = GROUND_LENGTH / 1.75; j < (GROUND_LENGTH / 1.75) + 5; j += SAND_GRID)
+		{
+			glBegin(GL_QUADS);
+
+			glNormal3d(0, 1, 0);
+			glTexCoord2f(0, 0);
+			glVertex3d(i, 0.01, j);
+
+			glNormal3d(0, 1, 0);
+			glTexCoord2f(0, 1);
+			glVertex3d(i + SAND_GRID, 0.01, j);
+
+			glNormal3d(0, 1, 0);
+			glTexCoord2f(1, 1);
+			glVertex3d(i + SAND_GRID, 00.01, j + SAND_GRID);
+
+			glNormal3d(0, 1, 0);
+			glTexCoord2f(1, 0);
+			glVertex3d(i, 0.01, j + SAND_GRID);
+
+			glEnd();
+		}
+	}
+
+	glDisable(GL_TEXTURE_2D);
+
+	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, waterTexture);
 
 	for (int i = 0; i < GROUND_WIDTH; i += 10)
 	{
-		for (int j = (GROUND_WIDTH / 1.75) + 5; j < GROUND_LENGTH; j += 10)
+		for (int j = (GROUND_LENGTH / 1.75) + 5; j < GROUND_LENGTH; j += 10)
 		{
 			glBegin(GL_QUADS);
 

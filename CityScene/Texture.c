@@ -7,6 +7,7 @@ void initTexture(void)
 	roadTexture = loadPPM("road.ppm");
 	brickTexture = loadPPM("brick.ppm");
 	waterTexture = loadPPM("water.ppm");
+	sandTexture = loadPPM("sand.ppm");
 }
 
 // Load a binary ppm file into an OpenGL texture and return the OpenGL texture reference ID

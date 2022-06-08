@@ -12,6 +12,7 @@ GLuint roadTexture;
 GLuint apartmentTexture;
 GLuint brickTexture;
 GLuint waterTexture;
+GLuint sandTexture;
 
 
 // Prototypes
